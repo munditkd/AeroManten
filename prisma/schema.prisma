@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  username      String?   @unique
+  email         String    @unique
+  passwordHash  String
+  role          Role      @default(USER)
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Requerido por el adapter de Auth.js si en el futuro sumás
+  // login social (Google, GitHub, etc.)
+  accounts            Account[]
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@map("users")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Propietario {
+  id            String   @id @default(cuid())
+  nombre        String
+  documento     String?
+  telefono      String?
+  email         String?
+  direccion     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  aeronaves Aeronave[]
+
+  @@map("propietarios")
+}
+
+model Aeronave {
+  id              String   @id @default(cuid())
+  matricula       String   @unique
+  marca           String?
+  modelo          String?
+  numeroSerie     String?
+  propietarioId   String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  propietario   Propietario             @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
+  mantenimientos RegistroMantenimiento[]
+
+  @@map("aeronaves")
+}
+
+model RegistroMantenimiento {
+  id          String   @id @default(cuid())
+  descripcion String   @db.Text
+  fecha       DateTime
+  aeronaveId  String
+  createdAt   DateTime @default(now())
+
+  aeronave Aeronave @relation(fields: [aeronaveId], references: [id], onDelete: Cascade)
+
+  @@map("registros_mantenimiento")
+}
