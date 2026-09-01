@@ -100,19 +100,47 @@ model Propietario {
 }
 
 model Aeronave {
-  id              String   @id @default(cuid())
-  matricula       String   @unique
-  marca           String?
-  modelo          String?
-  numeroSerie     String?
-  propietarioId   String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String    @id @default(cuid())
+  matricula        String    @unique
+  marca            String?
+  modelo           String?
+  numeroSerie      String?
+  fechaFabricacion DateTime?
+  // TSN = Time Since New (desde fabricación) · TSO = Time Since Overhaul (desde la última revisión)
+  horasTSN         Float?
+  horasTSO         Float?
+  ciclosTSN        Int?
+  ciclosTSO        Int?
+  propietarioId    String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  propietario   Propietario             @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
+  propietario    Propietario             @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
+  activos        Activo[]
   mantenimientos RegistroMantenimiento[]
 
   @@map("aeronaves")
+}
+
+model Activo {
+  id               String    @id @default(cuid())
+  tipo             String
+  marca            String?
+  modelo           String?
+  numeroSerie      String?
+  fechaFabricacion DateTime?
+  horasTSN         Float?
+  horasTSO         Float?
+  ciclosTSN        Int?
+  ciclosTSO        Int?
+  aeronaveId       String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  aeronave       Aeronave                @relation(fields: [aeronaveId], references: [id], onDelete: Cascade)
+  mantenimientos RegistroMantenimiento[]
+
+  @@map("activos")
 }
 
 model RegistroMantenimiento {
@@ -120,9 +148,11 @@ model RegistroMantenimiento {
   descripcion String   @db.Text
   fecha       DateTime
   aeronaveId  String
+  activoId    String?
   createdAt   DateTime @default(now())
 
   aeronave Aeronave @relation(fields: [aeronaveId], references: [id], onDelete: Cascade)
+  activo   Activo?  @relation(fields: [activoId], references: [id], onDelete: Cascade)
 
   @@map("registros_mantenimiento")
 }

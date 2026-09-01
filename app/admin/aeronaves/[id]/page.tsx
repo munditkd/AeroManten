@@ -7,6 +7,20 @@ import {
   createMantenimiento,
   deleteMantenimiento,
 } from "../actions";
+import { createActivo } from "../../activos/actions";
+
+function toDateInput(value: Date | null | undefined) {
+  return value ? value.toISOString().slice(0, 10) : "";
+}
+
+const TIPOS_ACTIVO_SUGERIDOS = [
+  "Motor",
+  "Hélice",
+  "Transponder",
+  "Tren de aterrizaje",
+  "Batería",
+  "Instrumento",
+];
 
 export default async function AeronaveDetailPage({
   params,
@@ -19,7 +33,11 @@ export default async function AeronaveDetailPage({
     where: { id },
     include: {
       propietario: true,
-      mantenimientos: { orderBy: { fecha: "desc" } },
+      activos: { orderBy: { tipo: "asc" } },
+      mantenimientos: {
+        orderBy: { fecha: "desc" },
+        include: { activo: true },
+      },
     },
   });
 
@@ -90,6 +108,65 @@ export default async function AeronaveDetailPage({
                 className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
               />
             </div>
+            <div>
+              <label className="block text-xs font-medium text-gris-700">
+                Fecha de fabricación
+              </label>
+              <input
+                name="fechaFabricacion"
+                type="date"
+                defaultValue={toDateInput(aeronave.fechaFabricacion)}
+                className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gris-700">
+                  Horas TSN
+                </label>
+                <input
+                  name="horasTSN"
+                  type="number"
+                  step="0.1"
+                  defaultValue={aeronave.horasTSN ?? ""}
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gris-700">
+                  Horas TSO
+                </label>
+                <input
+                  name="horasTSO"
+                  type="number"
+                  step="0.1"
+                  defaultValue={aeronave.horasTSO ?? ""}
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gris-700">
+                  Ciclos TSN
+                </label>
+                <input
+                  name="ciclosTSN"
+                  type="number"
+                  defaultValue={aeronave.ciclosTSN ?? ""}
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gris-700">
+                  Ciclos TSO
+                </label>
+                <input
+                  name="ciclosTSO"
+                  type="number"
+                  defaultValue={aeronave.ciclosTSO ?? ""}
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                />
+              </div>
+            </div>
             <button
               type="submit"
               className="w-full rounded-md bg-celeste-700 py-2 text-sm font-medium text-white hover:bg-celeste-800"
@@ -111,6 +188,148 @@ export default async function AeronaveDetailPage({
         <div className="space-y-6">
           <div className="rounded-lg border border-gris-200 bg-white p-6">
             <h2 className="text-sm font-semibold text-gris-900">
+              Componentes / Activos
+            </h2>
+            <ul className="mt-4 divide-y divide-gris-100">
+              {aeronave.activos.map((activo) => (
+                <li key={activo.id} className="py-3">
+                  <Link
+                    href={`/admin/activos/${activo.id}`}
+                    className="font-medium text-celeste-700 hover:underline"
+                  >
+                    {activo.tipo}
+                  </Link>
+                  <p className="text-xs text-gris-500">
+                    {[activo.marca, activo.modelo].filter(Boolean).join(" ") ||
+                      "Sin marca/modelo cargado"}
+                  </p>
+                </li>
+              ))}
+              {aeronave.activos.length === 0 && (
+                <li className="py-3 text-sm text-gris-500">
+                  Todavía no hay componentes cargados.
+                </li>
+              )}
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-gris-200 bg-white p-6">
+            <h2 className="text-sm font-semibold text-gris-900">
+              Agregar componente
+            </h2>
+            <form action={createActivo} className="mt-4 space-y-3">
+              <input type="hidden" name="aeronaveId" value={aeronave.id} />
+              <div>
+                <label className="block text-xs font-medium text-gris-700">
+                  Tipo *
+                </label>
+                <input
+                  name="tipo"
+                  required
+                  list="tipos-activo"
+                  placeholder="Motor, hélice, transponder..."
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                />
+                <datalist id="tipos-activo">
+                  {TIPOS_ACTIVO_SUGERIDOS.map((tipo) => (
+                    <option key={tipo} value={tipo} />
+                  ))}
+                </datalist>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gris-700">
+                    Marca
+                  </label>
+                  <input
+                    name="marca"
+                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gris-700">
+                    Modelo
+                  </label>
+                  <input
+                    name="modelo"
+                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gris-700">
+                  Número de serie
+                </label>
+                <input
+                  name="numeroSerie"
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gris-700">
+                  Fecha de fabricación
+                </label>
+                <input
+                  name="fechaFabricacion"
+                  type="date"
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gris-700">
+                    Horas TSN
+                  </label>
+                  <input
+                    name="horasTSN"
+                    type="number"
+                    step="0.1"
+                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gris-700">
+                    Horas TSO
+                  </label>
+                  <input
+                    name="horasTSO"
+                    type="number"
+                    step="0.1"
+                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gris-700">
+                    Ciclos TSN
+                  </label>
+                  <input
+                    name="ciclosTSN"
+                    type="number"
+                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gris-700">
+                    Ciclos TSO
+                  </label>
+                  <input
+                    name="ciclosTSO"
+                    type="number"
+                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                className="w-full rounded-md bg-marron-600 py-2 text-sm font-medium text-white hover:bg-marron-700"
+              >
+                Agregar componente
+              </button>
+            </form>
+          </div>
+
+          <div className="rounded-lg border border-gris-200 bg-white p-6">
+            <h2 className="text-sm font-semibold text-gris-900">
               Historial de mantenimiento
             </h2>
             <ul className="mt-4 divide-y divide-gris-100">
@@ -122,6 +341,11 @@ export default async function AeronaveDetailPage({
                   <div>
                     <p className="text-sm text-gris-900">
                       {registro.descripcion}
+                      {registro.activo && (
+                        <span className="ml-2 rounded-full bg-gris-100 px-2 py-0.5 text-xs text-gris-600">
+                          {registro.activo.tipo}
+                        </span>
+                      )}
                     </p>
                     <p className="text-xs text-gris-500">
                       {registro.fecha.toLocaleDateString("es-AR")}
@@ -151,6 +375,23 @@ export default async function AeronaveDetailPage({
             </h2>
             <form action={createMantenimiento} className="mt-4 space-y-3">
               <input type="hidden" name="aeronaveId" value={aeronave.id} />
+              <div>
+                <label className="block text-xs font-medium text-gris-700">
+                  Componente
+                </label>
+                <select
+                  name="activoId"
+                  defaultValue=""
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                >
+                  <option value="">General (toda la aeronave)</option>
+                  {aeronave.activos.map((activo) => (
+                    <option key={activo.id} value={activo.id}>
+                      {activo.tipo}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="block text-xs font-medium text-gris-700">
                   Fecha *
