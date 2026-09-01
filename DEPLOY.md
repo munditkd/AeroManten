@@ -157,3 +157,48 @@ seguís viendo "It works!" en el dominio, verificá:
 - `/admin` redirige a `/login` sin sesión, y a `/` si el usuario no es ADMIN.
 - Como ADMIN: crear un propietario, agregarle una aeronave, agregarle un registro
   de mantenimiento.
+
+## 10. Sincronizar actualizaciones desde GitHub
+
+El código vive en [github.com/munditkd/AeroManten](https://github.com/munditkd/AeroManten).
+Este hosting no tiene deploy automático desde GitHub, así que cada actualización
+se trae a mano con **Git™ Version Control** de cPanel:
+
+### La primera vez
+
+En cPanel → **Git™ Version Control** → **Create**:
+
+- **Clone URL**: `https://github.com/munditkd/AeroManten.git`
+- **Repository Path**: `repositories/aeromanten` (separado de `public_html/aeromanten`,
+  que es la carpeta que sirve la app y tiene `node_modules`/`.next`/`.env` que no
+  están en git)
+
+### Cada actualización
+
+Desde la terminal de la app (`Setup Node.js App` → `aeromanten` → ícono de
+terminal, o la Terminal general de cPanel):
+
+1. Traer los últimos commits: en **Git Version Control → Manage → Pull or
+   Deploy → Update from Remote** (o `cd ~/repositories/aeromanten && git pull`
+   desde la terminal).
+2. Copiar los archivos a la carpeta que sirve la app, sin tocar `.env`,
+   `node_modules` ni `.next`:
+
+   ```bash
+   cd ~/public_html/aeromanten
+   rsync -a --exclude='.git' --exclude='.env' --exclude='node_modules' --exclude='.next' \
+     ~/repositories/aeromanten/ ./
+   ```
+
+3. Reinstalar dependencias, regenerar Prisma y buildear (igual que en el
+   despliegue inicial — pasos 5 y 6):
+
+   ```bash
+   source /home/aeromant/nodevenv/public_html/aeromanten/22/bin/activate
+   npm install --include=dev
+   npx prisma generate
+   npx prisma db push
+   RAYON_NUM_THREADS=1 NODE_OPTIONS="--v8-pool-size=1" npm run build
+   ```
+
+4. Reiniciar: **Setup Node.js App → aeromanten → Restart**.
