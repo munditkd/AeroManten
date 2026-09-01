@@ -181,13 +181,16 @@ terminal, o la Terminal general de cPanel):
 1. Traer los últimos commits: en **Git Version Control → Manage → Pull or
    Deploy → Update from Remote** (o `cd ~/repositories/aeromanten && git pull`
    desde la terminal).
-2. Copiar los archivos a la carpeta que sirve la app, sin tocar `.env`,
-   `node_modules` ni `.next`:
+2. Copiar los archivos a la carpeta que sirve la app. Este hosting no tiene
+   `rsync`, así que se usa `cp` — como el clon en `~/repositories/aeromanten`
+   viene de git, ahí nunca van a existir `.env`, `node_modules` ni `.next`
+   (están en `.gitignore`), por eso no hace falta excluirlos al copiar, solo
+   borrar la carpeta `.git` que queda copiada de más:
 
    ```bash
    cd ~/public_html/aeromanten
-   rsync -a --exclude='.git' --exclude='.env' --exclude='node_modules' --exclude='.next' \
-     ~/repositories/aeromanten/ ./
+   cp -a ~/repositories/aeromanten/. ./
+   rm -rf ./.git
    ```
 
 3. Reinstalar dependencias, regenerar Prisma y buildear (igual que en el
