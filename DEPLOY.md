@@ -169,7 +169,7 @@ se trae a mano con **Git™ Version Control** de cPanel:
 En cPanel → **Git™ Version Control** → **Create**:
 
 - **Clone URL**: `https://github.com/munditkd/AeroManten.git`
-- **Repository Path**: `repositories/aeromanten` (separado de `public_html/aeromanten`,
+- **Repository Path**: `repositories/AeroManten` (separado de `public_html/aeromanten`,
   que es la carpeta que sirve la app y tiene `node_modules`/`.next`/`.env` que no
   están en git)
 
@@ -179,28 +179,33 @@ Desde la terminal de la app (`Setup Node.js App` → `aeromanten` → ícono de
 terminal, o la Terminal general de cPanel):
 
 1. Traer los últimos commits: en **Git Version Control → Manage → Pull or
-   Deploy → Update from Remote** (o `cd ~/repositories/aeromanten && git pull`
+   Deploy → Update from Remote** (o `cd ~/repositories/AeroManten && git pull`
    desde la terminal).
 2. Copiar los archivos a la carpeta que sirve la app. Este hosting no tiene
-   `rsync`, así que se usa `cp` — como el clon en `~/repositories/aeromanten`
+   `rsync`, así que se usa `cp` — como el clon en `~/repositories/AeroManten`
    viene de git, ahí nunca van a existir `.env`, `node_modules` ni `.next`
    (están en `.gitignore`), por eso no hace falta excluirlos al copiar, solo
    borrar la carpeta `.git` que queda copiada de más:
 
    ```bash
    cd ~/public_html/aeromanten
-   cp -a ~/repositories/aeromanten/. ./
+   cp -a ~/repositories/AeroManten/. ./
    rm -rf ./.git
    ```
 
 3. Reinstalar dependencias, regenerar Prisma y buildear (igual que en el
-   despliegue inicial — pasos 5 y 6):
+   despliegue inicial — pasos 5 y 6). **Es clave borrar `.next` antes de
+   buildear**: si se rebuildea encima de un `.next` de una build anterior,
+   quedan chunks/manifests mezclados y la app tira en producción errores
+   tipo `Invariant: The client reference manifest for route "..." does not
+   exist` (Internal Server Error en cualquier página):
 
    ```bash
    source /home/aeromant/nodevenv/public_html/aeromanten/22/bin/activate
    npm install --include=dev
    npx prisma generate
    npx prisma db push
+   rm -rf .next
    RAYON_NUM_THREADS=1 NODE_OPTIONS="--v8-pool-size=1" npm run build
    ```
 
