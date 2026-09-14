@@ -26,7 +26,7 @@ const servicios = [
 const razones = [
   "Personal técnico con experiencia en mantenimiento aeronáutico",
   "Cumplimiento de normativa y plazos de aeronavegabilidad",
-  "Atención personalizada para empresas con flotas pequeñas",
+  "Atención personalizada para empresas con flotas chicas o medianas",
   "Registro claro y trazable del historial de cada aeronave",
 ];
 
@@ -42,7 +42,7 @@ export default function HomePage() {
             Mantenimiento aeronáutico confiable para tu flota
           </h1>
           <p className="mt-6 max-w-xl text-lg text-celeste-100">
-            Trabajamos con pequeñas empresas que operan aeronaves propias o
+            Trabajamos con empresas que operan aeronaves propias o
             alquiladas, asegurando que cada mantenimiento se realice a tiempo
             y conforme a la normativa vigente.
           </p>

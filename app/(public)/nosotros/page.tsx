@@ -17,12 +17,12 @@ export default function NosotrosPage() {
       <div className="mt-8 max-w-3xl space-y-4 text-gris-700">
         <p>
           Aeromanten es una empresa de mantenimiento aeronáutico orientada a
-          pequeñas empresas que operan aeronaves propias o alquiladas.
+          empresas que operan aeronaves propias o alquiladas.
           Trabajamos para que cada aeronave se mantenga en condiciones seguras
           de operación, con el respaldo técnico y la documentación al día.
         </p>
         <p>
-          Entendemos que para una empresa con una flota chica, cada aeronave
+          Entendemos que para una empresa con una flota chica o mediana, cada aeronave
           fuera de servicio tiene un impacto directo en la operación. Por eso
           combinamos seguimiento técnico riguroso con atención cercana y
           personalizada a cada cliente.

@@ -34,6 +34,8 @@ function aeronaveData(formData: FormData) {
     horasTSO: num(formData, "horasTSO"),
     ciclosTSN: num(formData, "ciclosTSN"),
     ciclosTSO: num(formData, "ciclosTSO"),
+    mesesTSN: num(formData, "mesesTSN"),
+    mesesTSO: num(formData, "mesesTSO"),
   };
 }
 

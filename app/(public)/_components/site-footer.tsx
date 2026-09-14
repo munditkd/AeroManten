@@ -7,7 +7,7 @@ export function SiteFooter() {
         <div>
           <p className="text-lg font-semibold text-celeste-800">AEROMANTEN</p>
           <p className="mt-2 text-sm text-gris-600">
-            Mantenimiento aeronáutico para pequeñas empresas con aeronaves
+            Mantenimiento aeronáutico para empresas con aeronaves
             propias o alquiladas.
           </p>
         </div>

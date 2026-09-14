@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Aeromanten | Mantenimiento Aeronáutico",
   description:
-    "Aeromanten — mantenimiento aeronáutico para pequeñas empresas con aeronaves propias o alquiladas.",
+    "Aeromanten — mantenimiento aeronáutico para empresas con aeronaves propias o alquiladas.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

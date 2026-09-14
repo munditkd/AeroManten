@@ -111,13 +111,16 @@ model Aeronave {
   horasTSO         Float?
   ciclosTSN        Int?
   ciclosTSO        Int?
+  mesesTSN         Int?
+  mesesTSO         Int?
   propietarioId    String
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  propietario    Propietario             @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
-  activos        Activo[]
-  mantenimientos RegistroMantenimiento[]
+  propietario               Propietario                      @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
+  activos                   Activo[]
+  mantenimientos            RegistroMantenimiento[]
+  mantenimientosPreventivos ActivoMantenimientoPreventivo[]
 
   @@map("aeronaves")
 }
@@ -133,12 +136,16 @@ model Activo {
   horasTSO         Float?
   ciclosTSN        Int?
   ciclosTSO        Int?
-  aeronaveId       String
+  mesesTSN         Int?
+  mesesTSO         Int?
+  // Null = en depósito / como repuesto, sin montar en ninguna aeronave.
+  aeronaveId       String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  aeronave       Aeronave                @relation(fields: [aeronaveId], references: [id], onDelete: Cascade)
-  mantenimientos RegistroMantenimiento[]
+  aeronave                  Aeronave?                        @relation(fields: [aeronaveId], references: [id], onDelete: SetNull)
+  mantenimientos            RegistroMantenimiento[]
+  mantenimientosPreventivos ActivoMantenimientoPreventivo[]
 
   @@map("activos")
 }
@@ -155,4 +162,58 @@ model RegistroMantenimiento {
   activo   Activo?  @relation(fields: [activoId], references: [id], onDelete: Cascade)
 
   @@map("registros_mantenimiento")
+}
+
+model MantenimientoPreventivo {
+  id          String   @id @default(cuid())
+  codigo      String   @unique
+  descripcion String
+  horas       Float?
+  ciclos      Int?
+  meses       Int?
+  tarea       String   @db.Text
+  personas    Int?
+  horasHombre Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  activos ActivoMantenimientoPreventivo[]
+
+  @@map("mantenimientos_preventivos")
+}
+
+// Vincula un MP con lo que le aplica: un activo específico (ej. un motor)
+// O una aeronave completa (ej. una Recorrida General). Siempre se carga
+// exactamente uno de los dos (activoId o aeronaveId), nunca ambos ni ninguno.
+model ActivoMantenimientoPreventivo {
+  id                        String   @id @default(cuid())
+  activoId                  String?
+  aeronaveId                String?
+  mantenimientoPreventivoId String
+  createdAt                 DateTime @default(now())
+
+  activo                  Activo?                            @relation(fields: [activoId], references: [id], onDelete: Cascade)
+  aeronave                Aeronave?                          @relation(fields: [aeronaveId], references: [id], onDelete: Cascade)
+  mantenimientoPreventivo MantenimientoPreventivo            @relation(fields: [mantenimientoPreventivoId], references: [id], onDelete: Cascade)
+  realizaciones           MantenimientoPreventivoRealizado[]
+
+  @@unique([activoId, mantenimientoPreventivoId])
+  @@unique([aeronaveId, mantenimientoPreventivoId])
+  @@map("activos_mantenimientos_preventivos")
+}
+
+// Historial de cada vez que se realizó el MP sobre ese activo.
+// El vencimiento se calcula a partir de la realización más reciente.
+model MantenimientoPreventivoRealizado {
+  id            String   @id @default(cuid())
+  relacionId    String
+  fecha         DateTime
+  horas         Float?
+  ciclos        Int?
+  observaciones String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  relacion ActivoMantenimientoPreventivo @relation(fields: [relacionId], references: [id], onDelete: Cascade)
+
+  @@map("mantenimientos_preventivos_realizados")
 }

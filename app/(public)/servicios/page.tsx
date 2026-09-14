@@ -42,7 +42,7 @@ export default function ServiciosPage() {
         Mantenimiento aeronáutico integral
       </h1>
       <p className="mt-4 max-w-2xl text-gris-600">
-        Acompañamos a empresas con flotas pequeñas en cada etapa del
+        Acompañamos a empresas con flotas chicas o medianas en cada etapa del
         mantenimiento de sus aeronaves, propias o alquiladas.
       </p>
 

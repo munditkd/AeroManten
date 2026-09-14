@@ -8,6 +8,11 @@ import {
   deleteMantenimiento,
 } from "../actions";
 import { createActivo } from "../../activos/actions";
+import {
+  calcularVencimiento,
+  ESTADO_LABEL,
+  ESTADO_BADGE_CLASS,
+} from "@/lib/mantenimiento-preventivo";
 
 function toDateInput(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
@@ -29,19 +34,41 @@ export default async function AeronaveDetailPage({
 }) {
   const { id } = await params;
 
-  const aeronave = await prisma.aeronave.findUnique({
-    where: { id },
-    include: {
-      propietario: true,
-      activos: { orderBy: { tipo: "asc" } },
-      mantenimientos: {
-        orderBy: { fecha: "desc" },
-        include: { activo: true },
+  const [aeronave, relacionesMP] = await Promise.all([
+    prisma.aeronave.findUnique({
+      where: { id },
+      include: {
+        propietario: true,
+        activos: { orderBy: { tipo: "asc" } },
+        mantenimientos: {
+          orderBy: { fecha: "desc" },
+          include: { activo: true },
+        },
       },
-    },
-  });
+    }),
+    prisma.activoMantenimientoPreventivo.findMany({
+      where: { aeronaveId: id },
+      include: {
+        mantenimientoPreventivo: true,
+        realizaciones: { orderBy: { fecha: "desc" }, take: 1 },
+      },
+    }),
+  ]);
 
   if (!aeronave) notFound();
+
+  const mpConVencimiento = relacionesMP.map((relacion) => {
+    const ultima = relacion.realizaciones[0] ?? null;
+    const venc = calcularVencimiento({
+      mp: relacion.mantenimientoPreventivo,
+      activoHoras: aeronave.horasTSN,
+      activoCiclos: aeronave.ciclosTSN,
+      ultimaRealizacion: ultima
+        ? { fecha: ultima.fecha, horas: ultima.horas, ciclos: ultima.ciclos }
+        : null,
+    });
+    return { relacion, venc };
+  });
 
   const updateAeronaveWithId = updateAeronave.bind(null, aeronave.id);
   const deleteAeronaveWithId = deleteAeronave.bind(null, aeronave.id);
@@ -166,6 +193,28 @@ export default async function AeronaveDetailPage({
                   className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-medium text-gris-700">
+                  Meses TSN
+                </label>
+                <input
+                  name="mesesTSN"
+                  type="number"
+                  defaultValue={aeronave.mesesTSN ?? ""}
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gris-700">
+                  Meses TSO
+                </label>
+                <input
+                  name="mesesTSO"
+                  type="number"
+                  defaultValue={aeronave.mesesTSO ?? ""}
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                />
+              </div>
             </div>
             <button
               type="submit"
@@ -186,6 +235,48 @@ export default async function AeronaveDetailPage({
         </div>
 
         <div className="space-y-6">
+          <div className="rounded-lg border border-gris-200 bg-white p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gris-900">
+                Mantenimientos Preventivos
+              </h2>
+              <Link
+                href="/admin/activos/relacionar-mp"
+                className="text-xs font-medium text-celeste-700 hover:underline"
+              >
+                Relacionar más MP
+              </Link>
+            </div>
+            <p className="mt-1 text-xs text-gris-500">
+              MP aplicados a la aeronave completa (ej. Recorrida General).
+            </p>
+            <ul className="mt-4 divide-y divide-gris-100">
+              {mpConVencimiento.map(({ relacion, venc }) => (
+                <li key={relacion.id} className="py-3">
+                  <Link
+                    href={`/admin/activos/relacionar-mp/${relacion.id}`}
+                    className="font-medium text-celeste-700 hover:underline"
+                  >
+                    {relacion.mantenimientoPreventivo.codigo}
+                  </Link>{" "}
+                  <span
+                    className={`ml-1 rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_BADGE_CLASS[venc.estado]}`}
+                  >
+                    {ESTADO_LABEL[venc.estado]}
+                  </span>
+                  <p className="text-xs text-gris-500">
+                    {relacion.mantenimientoPreventivo.descripcion}
+                  </p>
+                </li>
+              ))}
+              {mpConVencimiento.length === 0 && (
+                <li className="py-3 text-sm text-gris-500">
+                  Esta aeronave todavía no tiene MP relacionados.
+                </li>
+              )}
+            </ul>
+          </div>
+
           <div className="rounded-lg border border-gris-200 bg-white p-6">
             <h2 className="text-sm font-semibold text-gris-900">
               Componentes / Activos
@@ -314,6 +405,26 @@ export default async function AeronaveDetailPage({
                   </label>
                   <input
                     name="ciclosTSO"
+                    type="number"
+                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gris-700">
+                    Meses TSN
+                  </label>
+                  <input
+                    name="mesesTSN"
+                    type="number"
+                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gris-700">
+                    Meses TSO
+                  </label>
+                  <input
+                    name="mesesTSO"
                     type="number"
                     className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
                   />
