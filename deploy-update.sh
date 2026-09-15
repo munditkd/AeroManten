@@ -16,20 +16,26 @@ NODEVENV="$HOME/nodevenv/public_html/aeromanten/22/bin/activate"
 export RAYON_NUM_THREADS=1
 export NODE_OPTIONS="--v8-pool-size=1"
 
-# Reintenta un comando hasta 3 veces (con pausa) porque estos "panics" por
-# limite de threads suelen ser intermitentes en este hosting. Cada intento
-# tiene un limite de tiempo (primer argumento, en segundos): si el comando
-# se cuelga en vez de fallar, se lo corta solo en vez de esperar para siempre.
+# Prisma hace un ping de telemetria/chequeo de actualizacion a un servidor
+# externo en cada comando. Si el hosting bloquea/filtra esa conexion saliente
+# sin rechazarla (en vez de cortarla), el comando se queda esperando esa
+# respuesta para siempre. Esto lo desactiva.
+export CHECKPOINT_DISABLE=1
+
+# Reintenta un comando hasta 3 veces (con pausa) porque estos cuelgues/panics
+# suelen ser intermitentes en este hosting. Cada intento tiene un limite de
+# tiempo (primer argumento, en segundos): si se cuelga en vez de fallar, se
+# lo mata con SIGKILL (no se puede ignorar) en vez de esperar para siempre.
 run_with_retry() {
   local timeout_seg="$1"
   shift
   local intentos=3
   local espera=5
   local intento=1
-  until timeout "$timeout_seg" "$@"; do
+  until timeout -s KILL "$timeout_seg" "$@"; do
     local codigo=$?
-    if [ "$codigo" -eq 124 ]; then
-      echo "Se colgó (más de ${timeout_seg}s sin terminar): $*"
+    if [ "$codigo" -eq 137 ]; then
+      echo "Se colgó (más de ${timeout_seg}s sin terminar, lo maté): $*"
     fi
     if [ "$intento" -ge "$intentos" ]; then
       echo "Fallo tras $intentos intentos: $*"
