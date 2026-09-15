@@ -26,6 +26,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               <Link href="/admin/activos" className="hover:text-celeste-700">
                 Activos
               </Link>
+              <Link href="/admin/medidores" className="hover:text-celeste-700">
+                Carga de Medidores
+              </Link>
               <Link href="/admin/mantenimiento-preventivo" className="hover:text-celeste-700">
                 Mantenimiento Preventivo
               </Link>
