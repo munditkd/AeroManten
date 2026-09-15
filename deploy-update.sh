@@ -9,6 +9,30 @@ REPO_DIR="$HOME/repositories/AeroManten"
 APP_DIR="$HOME/public_html/aeromanten"
 NODEVENV="$HOME/nodevenv/public_html/aeromanten/22/bin/activate"
 
+# Esta cuenta de hosting (CloudLinux LVE) tiene un limite bajo de threads
+# simultaneos, que hace "panicar" a los binarios en Rust (schema-engine de
+# Prisma, motor de Tailwind v4, SWC) si intentan usar varios. Se limita todo
+# a 1 thread para toda la sesion, no solo para el build.
+export RAYON_NUM_THREADS=1
+export NODE_OPTIONS="--v8-pool-size=1"
+
+# Reintenta un comando hasta 3 veces (con pausa) porque estos "panics" por
+# limite de threads suelen ser intermitentes en este hosting.
+run_with_retry() {
+  local intentos=3
+  local espera=5
+  local intento=1
+  until "$@"; do
+    if [ "$intento" -ge "$intentos" ]; then
+      echo "Fallo tras $intentos intentos: $*"
+      return 1
+    fi
+    echo "Fallo (intento $intento/$intentos), reintentando en ${espera}s..."
+    intento=$((intento + 1))
+    sleep "$espera"
+  done
+}
+
 echo "== 1/6: Trayendo los ultimos cambios de GitHub =="
 cd "$REPO_DIR"
 git pull
@@ -25,12 +49,12 @@ echo "== 4/6: Instalando dependencias =="
 npm install --include=dev
 
 echo "== 5/6: Generando cliente de Prisma y sincronizando la base =="
-npx prisma generate
-npx prisma db push --accept-data-loss
+run_with_retry npx prisma generate
+run_with_retry npx prisma db push --accept-data-loss
 
 echo "== 6/6: Compilando (build limpio) =="
 rm -rf .next
-RAYON_NUM_THREADS=1 NODE_OPTIONS="--v8-pool-size=1" npm run build
+run_with_retry npm run build
 
 echo ""
 echo "Listo. Ahora reiniciá la app desde cPanel:"
