@@ -22,19 +22,19 @@ export NODE_OPTIONS="--v8-pool-size=1"
 # respuesta para siempre. Esto lo desactiva.
 export CHECKPOINT_DISABLE=1
 
-# El cuelgue real no era el checkpoint (ese respondia bien): era la descarga
-# de los motores de Prisma (schema-engine y libquery-engine) desde
-# binaries.prisma.sh, bloqueada por el firewall del hosting. En vez de
-# depender de que la desbloqueen, se usan los binarios ya descargados a mano
-# (verificados con su sha256 oficial) que estan en $HOME/prisma-engines.
-# Ver PRISMA_ENGINES_SETUP.md para como se generaron y donde subirlos.
+# La descarga en caliente de los motores de Prisma (schema-engine y
+# libquery-engine) desde binaries.prisma.sh no funciona bien en este hosting
+# (se cuelga bajo carga). Se usa el motor de consultas ya descargado a mano
+# (verificado con su sha256 oficial) que esta en $HOME/prisma-engines para
+# que "prisma generate" no necesite red. schema-engine tambien esta ahi pero
+# YA NO SE USA en el servidor (ver mas abajo, paso 5/6): ese binario no logra
+# ejecutarse en este entorno (CloudLinux/AlmaLinux) por una razon que no
+# terminamos de identificar, asi que "prisma db push" se corre a mano desde
+# una maquina de desarrollo apuntando a la base de produccion, no aca.
+# Ver PRISMA_ENGINES_SETUP.md para el detalle completo.
 ENGINES_DIR="$HOME/prisma-engines"
-if [ -f "$ENGINES_DIR/schema-engine" ]; then
-  chmod +x "$ENGINES_DIR/schema-engine"
-  export PRISMA_SCHEMA_ENGINE_BINARY="$ENGINES_DIR/schema-engine"
-fi
-if [ -f "$ENGINES_DIR/libquery_engine-debian-openssl-3.0.x.so.node" ]; then
-  export PRISMA_QUERY_ENGINE_LIBRARY="$ENGINES_DIR/libquery_engine-debian-openssl-3.0.x.so.node"
+if [ -f "$ENGINES_DIR/libquery_engine-rhel-openssl-3.0.x.so.node" ]; then
+  export PRISMA_QUERY_ENGINE_LIBRARY="$ENGINES_DIR/libquery_engine-rhel-openssl-3.0.x.so.node"
 fi
 
 # Reintenta un comando hasta 3 veces (con pausa) porque estos cuelgues/panics
@@ -111,9 +111,15 @@ npm install --include=dev
 echo "Esperando 15s a que se asiente el sistema..."
 sleep 15
 
-echo "== 5/6: Generando cliente de Prisma y sincronizando la base =="
+echo "== 5/6: Generando cliente de Prisma =="
+# OJO: aca NO se corre "prisma db push". El schema-engine no logra ejecutarse
+# en este servidor (falla con "Unexpected end of JSON input" sin mas
+# detalle), asi que sincronizar la base con cambios de schema.prisma se hace
+# a mano, una sola vez por cambio, desde una maquina de desarrollo:
+#   DATABASE_URL="<url de produccion>" npx prisma db push --accept-data-loss
+# Este paso 5/6 solo genera el cliente (@prisma/client), que el build
+# necesita y que SI funciona bien aca con el motor pre-descargado.
 run_prisma_with_retry 180 /tmp/prisma-generate.log npx prisma generate
-run_prisma_with_retry 180 /tmp/prisma-dbpush.log npx prisma db push --accept-data-loss
 
 echo "== 6/6: Compilando (build limpio) =="
 rm -rf .next

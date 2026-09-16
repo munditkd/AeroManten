@@ -1,59 +1,92 @@
-# Motores de Prisma pre-descargados (workaround de firewall)
+# Motor de Prisma pre-descargado + db push manual (workaround)
 
 ## Por qué existe esto
 
 En el hosting de producción, `npx prisma generate` / `npx prisma db push`
-se quedaban colgados para siempre (sin error) justo después de leer el
-schema. Con `DEBUG=*` se vio que el paso siguiente era descargar los
-binarios `schema-engine` y `libquery-engine` desde `binaries.prisma.sh`, y
-soporte de Hostinger confirmó que ese hosting tiene un firewall saliente.
+se quedaban colgados bajo carga (no era un firewall: soporte de Hostinger
+confirmó, y confirmamos con `curl`, que la conexión saliente a
+`binaries.prisma.sh` funciona bien). El problema real era la descarga en
+caliente de los binarios de motor bajo los recursos limitados de este
+hosting (CloudLinux LVE).
 
-En vez de depender de que desbloqueen ese dominio, se descargaron los
-binarios correctos para el servidor (AlmaLinux/CloudLinux, target de Prisma
-`debian-openssl-3.0.x`) desde una máquina sin esa restricción, se
-verificaron contra el checksum SHA256 oficial publicado por Prisma, y se
-apunta a ellos directamente con variables de entorno que Prisma respeta
-para usar binarios "custom" sin intentar descargarlos:
+Se resolvió en dos partes distintas:
 
-- `PRISMA_SCHEMA_ENGINE_BINARY` → binario ejecutable del schema-engine
-- `PRISMA_QUERY_ENGINE_LIBRARY` → librería del motor de consultas
+1. **`prisma generate`** (necesita el motor de consultas, `libquery-engine`):
+   se pre-descargó el binario correcto desde una máquina sin esa
+   restricción, se verificó contra su checksum SHA256 oficial, y se apunta
+   a él con la variable `PRISMA_QUERY_ENGINE_LIBRARY`, que Prisma respeta
+   para usar un binario "custom" sin intentar descargarlo. Esto **sí
+   funciona** en el servidor.
 
-`deploy-update.sh` ya exporta estas variables automáticamente si
-encuentra los archivos en `$HOME/prisma-engines/`.
+2. **`prisma db push`** (necesita el `schema-engine`): incluso con el
+   binario correcto pre-descargado y verificado, falla en este servidor con
+   `Error: Could not parse schema engine response: Unexpected end of JSON
+   input` — el proceso no llega a producir salida. No se identificó la
+   causa exacta (podría ser CageFS bloqueando la ejecución de un binario
+   fuera de las rutas manejadas por npm, alguna librería faltante, etc.).
+   En vez de seguir insistiendo ahí, `db push` se corre **desde una máquina
+   de desarrollo** apuntando directo a la base de producción (el puerto
+   3306 de `213.239.205.92` es accesible desde afuera), y el servidor nunca
+   necesita ejecutar schema-engine.
 
-## Verificación de integridad (ya hecha, para referencia)
+`deploy-update.sh` ya exporta `PRISMA_QUERY_ENGINE_LIBRARY` automáticamente
+si encuentra el archivo en `$HOME/prisma-engines/`, y **ya no intenta
+`db push`** como parte del deploy normal.
 
+## Cuándo correr `db push` manualmente
+
+Solo hace falta cuando `prisma/schema.prisma` cambia (nueva tabla, campo,
+etc.) — no en cada deploy. Desde la máquina de desarrollo, en la carpeta
+del proyecto:
+
+```powershell
+# PowerShell
+$env:DATABASE_URL = "mysql://aeromant_admin:<password>@213.239.205.92:3306/aeromant_aero"
+npx prisma db push --accept-data-loss
+Remove-Item Env:\DATABASE_URL
 ```
-schema-engine (descomprimido):
-  6a516632d085842ec5a31a6a9e81f39feea3963ec4574f54f62886e4403f6b53
 
-Fuente: https://binaries.prisma.sh/all_commits/e922089b7d7502aff4249d5da3420f6fa55fc6ad/debian-openssl-3.0.x/schema-engine.gz
-Checksum oficial: https://binaries.prisma.sh/all_commits/e922089b7d7502aff4249d5da3420f6fa55fc6ad/debian-openssl-3.0.x/schema-engine.sha256
+```bash
+# Git Bash
+DATABASE_URL="mysql://aeromant_admin:<password>@213.239.205.92:3306/aeromant_aero" npx prisma db push --accept-data-loss
 ```
+
+Esto aplica el schema directo a la base de producción real — revisar el
+resumen de cambios que imprime antes de confirmar si alguna vez pide
+`--accept-data-loss` de forma inesperada (una columna/tabla que no
+debería perderse).
+
+## Verificación de integridad del motor de consultas (ya hecha, para referencia)
+
+El `libquery_engine-rhel-openssl-3.0.x.so.node` se obtuvo con el mecanismo
+oficial de Prisma para pre-descargar motores de otra plataforma
+(`binaryTargets` en `prisma/schema.prisma`), no con una URL armada a mano,
+así que ya viene verificado por la propia herramienta al generarse
+localmente. El target es `rhel-openssl-3.0.x` porque el hosting corre
+AlmaLinux (familia RHEL) — Prisma no lo detecta solo (cae a "debian" por
+defecto porque no puede leer `/etc/os-release` en este entorno).
 
 El hash `e922089b7d7502aff4249d5da3420f6fa55fc6ad` corresponde a la versión
-de Prisma usada en este proyecto (`prisma@6.19.3`). El `libquery_engine`
-se obtuvo con el mecanismo oficial de Prisma para pre-descargar motores de
-otra plataforma (`binaryTargets` en `prisma/schema.prisma`), no con una URL
-armada a mano, así que ya viene verificado por la propia herramienta.
+de Prisma usada en este proyecto (`prisma@6.19.3`).
 
-## Cómo subirlos al servidor (una sola vez)
+## Cómo subirlo al servidor (una sola vez)
 
-1. Subí `prisma-engines-debian.zip` a `$HOME` (la carpeta home de la
-   cuenta `aeromant`, **no** dentro de `public_html/aeromanten`) usando el
+1. Subí `prisma-engines-rhel.zip` a `$HOME` (la carpeta home de la cuenta
+   `aeromant`, **no** dentro de `public_html/aeromanten`) usando el
    Administrador de Archivos de cPanel.
 2. Extraelo ahí mismo (botón derecho → Extract). Debe quedar:
    ```
-   /home/aeromant/prisma-engines/schema-engine
-   /home/aeromant/prisma-engines/libquery_engine-debian-openssl-3.0.x.so.node
+   /home/aeromant/prisma-engines/libquery_engine-rhel-openssl-3.0.x.so.node
    ```
-3. Listo — `deploy-update.sh` los detecta solo en la próxima corrida. No
-   hace falta tocar nada más; si el firewall algún día se destraba, alcanza
-   con borrar la carpeta `~/prisma-engines` para volver a la descarga
-   normal.
+   (Si de un intento anterior quedó ahí un `schema-engine` o un
+   `libquery_engine-debian-openssl-3.0.x.so.node`, se pueden borrar — ya no
+   se usan.)
+3. Listo — `deploy-update.sh` lo detecta solo en la próxima corrida.
 
 ## Si se actualiza la versión de Prisma más adelante
 
-Estos binarios son específicos de la versión `6.19.3`. Si en el futuro se
+Este binario es específico de la versión `6.19.3`. Si en el futuro se
 actualiza Prisma, hay que repetir el proceso para la nueva versión (avisen
-y se regenera el paquete).
+y se regenera el paquete) — y volver a intentar si para esa versión
+`db push` sí logra correr en el servidor, por si el problema era específico
+de esta versión del schema-engine.
