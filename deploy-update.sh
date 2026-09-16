@@ -45,10 +45,38 @@ run_with_retry() {
   local timeout_seg="$1"
   shift
   local intentos=3
-  local espera=5
+  local espera=10
   local intento=1
   until timeout -s KILL "$timeout_seg" "$@"; do
     local codigo=$?
+    if [ "$codigo" -eq 137 ]; then
+      echo "Se colgó (más de ${timeout_seg}s sin terminar, lo maté): $*"
+    fi
+    if [ "$intento" -ge "$intentos" ]; then
+      echo "Fallo tras $intentos intentos: $*"
+      return 1
+    fi
+    echo "Fallo (intento $intento/$intentos), reintentando en ${espera}s..."
+    intento=$((intento + 1))
+    sleep "$espera"
+  done
+}
+
+# Igual que run_with_retry, pero ademas graba un log detallado (DEBUG=*) de
+# Prisma y, si falla, muestra las ultimas lineas automaticamente. Asi, si se
+# vuelve a colgar, ya tenemos el diagnostico sin correr nada a mano de nuevo.
+run_prisma_with_retry() {
+  local timeout_seg="$1"
+  local logfile="$2"
+  shift 2
+  local intentos=3
+  local espera=10
+  local intento=1
+  until DEBUG="prisma:fetch-engine:env,prisma:engines,prisma:cli:*" timeout -s KILL "$timeout_seg" "$@" >"$logfile" 2>&1; do
+    local codigo=$?
+    echo "--- últimas líneas de $logfile (para diagnóstico) ---"
+    tail -30 "$logfile" || true
+    echo "-----------------------------------------------------"
     if [ "$codigo" -eq 137 ]; then
       echo "Se colgó (más de ${timeout_seg}s sin terminar, lo maté): $*"
     fi
@@ -77,9 +105,15 @@ source "$NODEVENV"
 echo "== 4/6: Instalando dependencias =="
 npm install --include=dev
 
+# npm install es pesado (cientos de paquetes) en un hosting con recursos muy
+# limitados. Le damos un respiro antes de que Prisma necesite esos mismos
+# recursos, para no chocar con la carga residual del paso anterior.
+echo "Esperando 15s a que se asiente el sistema..."
+sleep 15
+
 echo "== 5/6: Generando cliente de Prisma y sincronizando la base =="
-run_with_retry 90 npx prisma generate
-run_with_retry 90 npx prisma db push --accept-data-loss
+run_prisma_with_retry 180 /tmp/prisma-generate.log npx prisma generate
+run_prisma_with_retry 180 /tmp/prisma-dbpush.log npx prisma db push --accept-data-loss
 
 echo "== 6/6: Compilando (build limpio) =="
 rm -rf .next
