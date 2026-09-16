@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  typescript: {
+    // El chequeo de tipos ya se corre en desarrollo (`npx tsc --noEmit`)
+    // antes de cada cambio. En este hosting, ese mismo chequeo durante
+    // `next build` se cuelga (nunca llega a imprimir "Running TypeScript"),
+    // asi que se lo saltea en el build de produccion: es redundante y este
+    // servidor no tiene los recursos para correrlo de nuevo ahi.
+    ignoreBuildErrors: true,
+  },
   experimental: {
     // Este hosting compartido tiene un límite muy bajo de procesos/threads;
     // reduce al mínimo los workers paralelos que usa el build.
