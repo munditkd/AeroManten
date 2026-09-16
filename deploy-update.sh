@@ -22,6 +22,21 @@ export NODE_OPTIONS="--v8-pool-size=1"
 # respuesta para siempre. Esto lo desactiva.
 export CHECKPOINT_DISABLE=1
 
+# El cuelgue real no era el checkpoint (ese respondia bien): era la descarga
+# de los motores de Prisma (schema-engine y libquery-engine) desde
+# binaries.prisma.sh, bloqueada por el firewall del hosting. En vez de
+# depender de que la desbloqueen, se usan los binarios ya descargados a mano
+# (verificados con su sha256 oficial) que estan en $HOME/prisma-engines.
+# Ver PRISMA_ENGINES_SETUP.md para como se generaron y donde subirlos.
+ENGINES_DIR="$HOME/prisma-engines"
+if [ -f "$ENGINES_DIR/schema-engine" ]; then
+  chmod +x "$ENGINES_DIR/schema-engine"
+  export PRISMA_SCHEMA_ENGINE_BINARY="$ENGINES_DIR/schema-engine"
+fi
+if [ -f "$ENGINES_DIR/libquery_engine-debian-openssl-3.0.x.so.node" ]; then
+  export PRISMA_QUERY_ENGINE_LIBRARY="$ENGINES_DIR/libquery_engine-debian-openssl-3.0.x.so.node"
+fi
+
 # Reintenta un comando hasta 3 veces (con pausa) porque estos cuelgues/panics
 # suelen ser intermitentes en este hosting. Cada intento tiene un limite de
 # tiempo (primer argumento, en segundos): si se cuelga en vez de fallar, se
