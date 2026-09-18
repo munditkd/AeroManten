@@ -54,12 +54,20 @@ export async function SiteHeader() {
               <LogoutButton className="text-sm font-medium text-gris-500 hover:text-celeste-700" />
             </div>
           ) : (
-            <Link
-              href="/login"
-              className="rounded-md bg-celeste-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-celeste-800"
-            >
-              Ingresar
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/register"
+                className="hidden text-sm font-medium text-gris-600 hover:text-celeste-700 sm:inline"
+              >
+                Registrarse
+              </Link>
+              <Link
+                href="/login"
+                className="rounded-md bg-celeste-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-celeste-800"
+              >
+                Ingresar
+              </Link>
+            </div>
           )}
         </nav>
       </div>

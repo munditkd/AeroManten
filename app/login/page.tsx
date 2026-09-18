@@ -90,6 +90,13 @@ export default function LoginPage() {
             {loading ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
+
+        <p className="text-center text-sm text-gray-500">
+          ¿No tenés cuenta?{" "}
+          <Link href="/register" className="font-medium text-gray-900 underline">
+            Registrate
+          </Link>
+        </p>
       </div>
     </div>
   );
