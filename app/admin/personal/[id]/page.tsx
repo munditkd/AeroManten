@@ -15,7 +15,10 @@ export default async function PersonalDetailPage({
 }) {
   const { id } = await params;
 
-  const persona = await prisma.personal.findUnique({ where: { id } });
+  const [persona, grupos] = await Promise.all([
+    prisma.personal.findUnique({ where: { id } }),
+    prisma.grupo.findMany({ orderBy: { codigo: "asc" } }),
+  ]);
   if (!persona) notFound();
 
   const updatePersonalWithId = updatePersonal.bind(null, persona.id);
@@ -72,6 +75,23 @@ export default async function PersonalDetailPage({
               {ROLES_PERSONAL.map((rol) => (
                 <option key={rol} value={rol}>
                   {ROL_LABEL[rol]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gris-700">
+              Grupo
+            </label>
+            <select
+              name="grupoId"
+              defaultValue={persona.grupoId ?? ""}
+              className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+            >
+              <option value="">Sin grupo</option>
+              {grupos.map((grupo) => (
+                <option key={grupo.id} value={grupo.id}>
+                  {grupo.codigo} — {grupo.descripcion}
                 </option>
               ))}
             </select>

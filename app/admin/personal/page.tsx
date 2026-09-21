@@ -4,9 +4,13 @@ import { ROL_LABEL, ROLES_PERSONAL } from "@/lib/personal";
 import { createPersonal } from "./actions";
 
 export default async function PersonalPage() {
-  const personal = await prisma.personal.findMany({
-    orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
-  });
+  const [personal, grupos] = await Promise.all([
+    prisma.personal.findMany({
+      orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
+      include: { grupo: true },
+    }),
+    prisma.grupo.findMany({ orderBy: { codigo: "asc" } }),
+  ]);
 
   return (
     <div>
@@ -23,6 +27,7 @@ export default async function PersonalPage() {
               <tr>
                 <th className="px-4 py-3">Apellido y nombre</th>
                 <th className="px-4 py-3">Rol</th>
+                <th className="px-4 py-3">Grupo</th>
                 <th className="px-4 py-3">DNI</th>
                 <th className="px-4 py-3">Habilitado</th>
                 <th className="px-4 py-3">Vencimiento</th>
@@ -41,6 +46,9 @@ export default async function PersonalPage() {
                   </td>
                   <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
                     {ROL_LABEL[persona.rol]}
+                  </td>
+                  <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
+                    {persona.grupo?.codigo ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
                     {persona.dni ?? "—"}
@@ -65,7 +73,7 @@ export default async function PersonalPage() {
               ))}
               {personal.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-gris-500">
+                  <td colSpan={6} className="px-4 py-6 text-center text-gris-500">
                     Todavía no hay personal cargado.
                   </td>
                 </tr>
@@ -116,6 +124,23 @@ export default async function PersonalPage() {
                   {ROLES_PERSONAL.map((rol) => (
                     <option key={rol} value={rol}>
                       {ROL_LABEL[rol]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gris-700">
+                  Grupo
+                </label>
+                <select
+                  name="grupoId"
+                  defaultValue=""
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                >
+                  <option value="">Sin grupo</option>
+                  {grupos.map((grupo) => (
+                    <option key={grupo.id} value={grupo.id}>
+                      {grupo.codigo} — {grupo.descripcion}
                     </option>
                   ))}
                 </select>

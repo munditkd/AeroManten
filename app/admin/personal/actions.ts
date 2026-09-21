@@ -21,6 +21,14 @@ function bool(formData: FormData, key: string): boolean {
   return formData.get(key) === "on";
 }
 
+// Un valor vacío significa "sin grupo" (null), no "no tocar el campo".
+function optionalRelationId(formData: FormData, key: string): string | null {
+  const value = formData.get(key);
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
+
 function personalData(formData: FormData) {
   return {
     dni: str(formData, "dni") ?? null,
@@ -31,6 +39,7 @@ function personalData(formData: FormData) {
     habilitado: bool(formData, "habilitado"),
     fechaInicioHabilitacion: date(formData, "fechaInicioHabilitacion") ?? null,
     fechaVencimientoHabilitacion: date(formData, "fechaVencimientoHabilitacion") ?? null,
+    grupoId: optionalRelationId(formData, "grupoId"),
   };
 }
 

@@ -6,7 +6,11 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  if (req.nextUrl.pathname.startsWith("/admin/personal") && req.auth.user?.role !== "ADMIN") {
+  const ADMIN_ONLY_PREFIXES = ["/admin/personal", "/admin/grupos"];
+  const isAdminOnlyRoute = ADMIN_ONLY_PREFIXES.some((prefix) =>
+    req.nextUrl.pathname.startsWith(prefix)
+  );
+  if (isAdminOnlyRoute && req.auth.user?.role !== "ADMIN") {
     return NextResponse.redirect(new URL("/admin", req.url));
   }
 

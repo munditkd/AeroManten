@@ -247,8 +247,31 @@ model Personal {
   habilitado                   Boolean     @default(false)
   fechaInicioHabilitacion      DateTime?
   fechaVencimientoHabilitacion DateTime?
+  grupoId                      String?
   createdAt                    DateTime    @default(now())
   updatedAt                    DateTime    @updatedAt
 
+  grupo Grupo? @relation(fields: [grupoId], references: [id], onDelete: SetNull)
+
   @@map("personal")
+}
+
+// Los checkboxes (insertar/modificar/borrar/noUsar) son flags propios del
+// grupo por ahora; más adelante van a definir permisos por entidad, no solo
+// a nivel de grupo entero.
+model Grupo {
+  id            String   @id @default(cuid())
+  codigo        String   @unique
+  descripcion   String
+  insertar      Boolean  @default(false)
+  modificar     Boolean  @default(false)
+  borrar        Boolean  @default(false)
+  noUsar        Boolean  @default(false)
+  observaciones String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  personal Personal[]
+
+  @@map("grupos")
 }

@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-const ITEMS = [{ href: "/admin/personal", label: "Personal" }];
+const ITEMS = [
+  { href: "/admin/personal", label: "Personal" },
+  { href: "/admin/grupos", label: "Grupos" },
+];
 
 export function AdministracionMenu() {
   const [open, setOpen] = useState(false);
