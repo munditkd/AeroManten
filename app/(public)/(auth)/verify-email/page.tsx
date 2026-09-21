@@ -27,7 +27,7 @@ function VerifyEmailStatus() {
   }, [token]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex items-center justify-center bg-gray-50 px-4 py-16">
       <div className="w-full max-w-sm space-y-4 rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
         {status === "loading" && (
           <p className="text-gray-600">Verificando tu email...</p>

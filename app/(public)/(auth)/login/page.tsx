@@ -30,12 +30,12 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/");
+    router.push("/admin");
     router.refresh();
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex items-center justify-center bg-gray-50 px-4 py-16">
       <div className="w-full max-w-sm space-y-6 rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Iniciar sesión</h1>
