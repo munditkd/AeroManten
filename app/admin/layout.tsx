@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { LogoutButton } from "../_components/logout-button";
 import { OperacionesMenu } from "../_components/operaciones-menu";
+import { AdministracionMenu } from "../_components/administracion-menu";
 import { UserMenu } from "../_components/user-menu";
 import { BrandStrip } from "../_components/brand-strip";
 
@@ -21,6 +22,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
                 Dashboard
               </Link>
               <OperacionesMenu />
+              {session?.user?.role === "ADMIN" && <AdministracionMenu />}
             </nav>
           </div>
 

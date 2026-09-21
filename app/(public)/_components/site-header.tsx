@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { LogoutButton } from "../../_components/logout-button";
 import { OperacionesMenu } from "../../_components/operaciones-menu";
+import { AdministracionMenu } from "../../_components/administracion-menu";
 import { UserMenu } from "../../_components/user-menu";
 
 const navLinks = [
@@ -37,6 +38,7 @@ export async function SiteHeader() {
                 Dashboard
               </Link>
               <OperacionesMenu />
+              {session.user.role === "ADMIN" && <AdministracionMenu />}
             </div>
           ) : (
             <ul className="hidden items-center gap-6 text-sm font-medium text-gris-700 md:flex">
@@ -109,6 +111,13 @@ export async function SiteHeader() {
                 Mantenimiento Preventivo
               </Link>
             </li>
+            {session?.user?.role === "ADMIN" && (
+              <li>
+                <Link href="/admin/personal" className="hover:text-celeste-700">
+                  Personal
+                </Link>
+              </li>
+            )}
           </ul>
         ) : (
           <ul className="mx-auto flex max-w-6xl justify-center gap-6 px-4 py-2 text-sm font-medium text-gris-700">
