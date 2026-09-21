@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   // "native" = motor para tu maquina de desarrollo (Windows). Se agrega
   // "rhel-openssl-3.0.x" porque el hosting de produccion (AlmaLinux, familia
   // RHEL, con OpenSSL 3.0) bloquea/tiene problemas para descargar motores en
@@ -94,14 +94,14 @@ model VerificationToken {
 }
 
 model Propietario {
-  id            String   @id @default(cuid())
-  nombre        String
-  documento     String?
-  telefono      String?
-  email         String?
-  direccion     String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String   @id @default(cuid())
+  nombre    String
+  documento String?
+  telefono  String?
+  email     String?
+  direccion String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   aeronaves Aeronave[]
 
@@ -126,10 +126,11 @@ model Aeronave {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  propietario               Propietario                      @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
+  propietario               Propietario                     @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
   activos                   Activo[]
   mantenimientos            RegistroMantenimiento[]
   mantenimientosPreventivos ActivoMantenimientoPreventivo[]
+  ordenesTrabajo            OrdenTrabajo[]
 
   @@map("aeronaves")
 }
@@ -152,9 +153,10 @@ model Activo {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  aeronave                  Aeronave?                        @relation(fields: [aeronaveId], references: [id], onDelete: SetNull)
+  aeronave                  Aeronave?                       @relation(fields: [aeronaveId], references: [id], onDelete: SetNull)
   mantenimientos            RegistroMantenimiento[]
   mantenimientosPreventivos ActivoMantenimientoPreventivo[]
+  ordenesTrabajo            OrdenTrabajo[]
 
   @@map("activos")
 }
@@ -186,7 +188,8 @@ model MantenimientoPreventivo {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  activos ActivoMantenimientoPreventivo[]
+  activos        ActivoMantenimientoPreventivo[]
+  ordenesTrabajo OrdenTrabajo[]
 
   @@map("mantenimientos_preventivos")
 }
@@ -251,7 +254,10 @@ model Personal {
   createdAt                    DateTime    @default(now())
   updatedAt                    DateTime    @updatedAt
 
-  grupo Grupo? @relation(fields: [grupoId], references: [id], onDelete: SetNull)
+  grupo                     Grupo?                   @relation(fields: [grupoId], references: [id], onDelete: SetNull)
+  ordenesTrabajoOriginadas  OrdenTrabajo[]           @relation("OTOriginador")
+  ordenesTrabajoResponsable OrdenTrabajo[]           @relation("OTResponsable")
+  manoDeObra                OrdenTrabajoManoDeObra[]
 
   @@map("personal")
 }
@@ -274,4 +280,85 @@ model Grupo {
   personal Personal[]
 
   @@map("grupos")
+}
+
+enum EstadoOT {
+  ABIERTA
+  EN_PROCESO
+  CERRADA
+  CANCELADA
+}
+
+enum PrioridadOT {
+  BAJA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+model OrdenTrabajo {
+  id           String   @id @default(cuid())
+  codigo       String   @unique
+  descripcion  String   @db.Text
+  // tipo/clase/categoria quedan como texto libre por ahora; se pueden
+  // convertir en listas fijas más adelante cuando haya valores definidos.
+  tipo         String?
+  clase        String?
+  categoria    String?
+  fecha        DateTime
+  estado       EstadoOT @default(ABIERTA)
+  departamento String?
+
+  // Null = OT no ligada a una aeronave/activo puntual (ej. tarea de taller).
+  aeronaveId String?
+  activoId   String?
+
+  // Plan de mantenimiento preventivo del que surge esta OT (si aplica).
+  mantenimientoPreventivoId String?
+
+  fechaInicio         DateTime?
+  fechaFinPlanificado DateTime?
+  duracionEstimada    Float?
+  duracionReal        Float?
+
+  originadorId  String?
+  responsableId String?
+  prioridad     PrioridadOT @default(MEDIA)
+  falla         String?     @db.Text
+  fechaCerrado  DateTime?
+  costo         Float?
+  hsTotales     Float?
+
+  // Se completa solo, con el usuario logueado que hizo el último guardado.
+  actualizadoPor String?
+  comentarios    String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  aeronave                Aeronave?                @relation(fields: [aeronaveId], references: [id], onDelete: SetNull)
+  activo                  Activo?                  @relation(fields: [activoId], references: [id], onDelete: SetNull)
+  mantenimientoPreventivo MantenimientoPreventivo? @relation(fields: [mantenimientoPreventivoId], references: [id], onDelete: SetNull)
+  originador              Personal?                @relation("OTOriginador", fields: [originadorId], references: [id], onDelete: SetNull)
+  responsable             Personal?                @relation("OTResponsable", fields: [responsableId], references: [id], onDelete: SetNull)
+  manoDeObra              OrdenTrabajoManoDeObra[]
+
+  @@map("ordenes_trabajo")
+}
+
+// Carga de mano de obra: varias entradas por OT (una por operario/día/tarea).
+model OrdenTrabajoManoDeObra {
+  id              String    @id @default(cuid())
+  ordenTrabajoId  String
+  personalId      String?
+  fecha           DateTime?
+  horasTrabajadas Float?
+  tareas          String?   @db.Text
+  costo           Float?
+  comentarios     String?   @db.Text
+  createdAt       DateTime  @default(now())
+
+  ordenTrabajo OrdenTrabajo @relation(fields: [ordenTrabajoId], references: [id], onDelete: Cascade)
+  personal     Personal?    @relation(fields: [personalId], references: [id], onDelete: SetNull)
+
+  @@map("ordenes_trabajo_mano_obra")
 }

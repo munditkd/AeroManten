@@ -111,6 +111,11 @@ export async function SiteHeader() {
                 Mantenimiento Preventivo
               </Link>
             </li>
+            <li>
+              <Link href="/admin/ordenes-trabajo" className="hover:text-celeste-700">
+                Órdenes de Trabajo
+              </Link>
+            </li>
             {session?.user?.role === "ADMIN" && (
               <li>
                 <Link href="/admin/personal" className="hover:text-celeste-700">

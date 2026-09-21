@@ -9,6 +9,7 @@ const ITEMS = [
   { href: "/admin/activos", label: "Activos" },
   { href: "/admin/medidores", label: "Carga de Medidores" },
   { href: "/admin/mantenimiento-preventivo", label: "Mantenimiento Preventivo" },
+  { href: "/admin/ordenes-trabajo", label: "Órdenes de Trabajo" },
 ];
 
 export function OperacionesMenu() {

@@ -5,12 +5,14 @@ import { prisma } from "@/lib/prisma";
 export default async function AdminPage() {
   const session = await auth();
 
-  const [propietarios, aeronaves, activos, mantenimientosPreventivos] = await Promise.all([
-    prisma.propietario.count(),
-    prisma.aeronave.count(),
-    prisma.activo.count(),
-    prisma.mantenimientoPreventivo.count(),
-  ]);
+  const [propietarios, aeronaves, activos, mantenimientosPreventivos, ordenesTrabajo] =
+    await Promise.all([
+      prisma.propietario.count(),
+      prisma.aeronave.count(),
+      prisma.activo.count(),
+      prisma.mantenimientoPreventivo.count(),
+      prisma.ordenTrabajo.count(),
+    ]);
 
   return (
     <div>
@@ -70,6 +72,18 @@ export default async function AdminPage() {
             className="mt-4 inline-block rounded-md border border-celeste-700 px-4 py-2 text-center text-sm font-medium text-celeste-700 hover:bg-celeste-50"
           >
             Ver MP
+          </Link>
+        </div>
+        <div className="flex flex-col rounded-lg border border-gris-200 bg-white p-6">
+          <p className="text-sm font-medium text-gris-500">Órdenes de Trabajo</p>
+          <p className="mt-1 text-3xl font-semibold text-celeste-800">
+            {ordenesTrabajo}
+          </p>
+          <Link
+            href="/admin/ordenes-trabajo"
+            className="mt-4 inline-block rounded-md border border-celeste-700 px-4 py-2 text-center text-sm font-medium text-celeste-700 hover:bg-celeste-50"
+          >
+            Ver OT
           </Link>
         </div>
       </div>
