@@ -119,6 +119,11 @@ model Propietario {
 
 model Aeronave {
   id               String    @id @default(cuid())
+  // Contador interno para generar "codigo" (AN-001 en adelante). Todavia no
+  // se usa para nada (las relaciones siguen por matricula), solo prolija
+  // la base para uso futuro.
+  secuencia        Int       @unique @default(autoincrement())
+  codigo           String    @unique
   matricula        String    @unique
   marca            String?
   modelo           String?

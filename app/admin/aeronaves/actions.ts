@@ -51,12 +51,20 @@ export async function createAeronave(formData: FormData) {
   }
 
   try {
-    await prisma.aeronave.create({
+    // codigo se completa recién después de crear, con el número (secuencia)
+    // que MySQL le asigna solo. Todavía no se usa para nada, es solo para
+    // prolijidad; las relaciones siguen por matrícula.
+    const creada = await prisma.aeronave.create({
       data: {
+        codigo: `TMP-${Date.now()}`,
         matricula: matricula.toUpperCase(),
         propietarioId,
         ...aeronaveData(formData),
       },
+    });
+    await prisma.aeronave.update({
+      where: { id: creada.id },
+      data: { codigo: `AN-${String(creada.secuencia).padStart(3, "0")}` },
     });
   } catch (error) {
     if (
