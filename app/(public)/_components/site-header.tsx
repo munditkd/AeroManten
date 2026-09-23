@@ -117,11 +117,23 @@ export async function SiteHeader() {
               </Link>
             </li>
             {session?.user?.role === "ADMIN" && (
-              <li>
-                <Link href="/admin/personal" className="hover:text-celeste-700">
-                  Personal
-                </Link>
-              </li>
+              <>
+                <li>
+                  <Link href="/admin/personal" className="hover:text-celeste-700">
+                    Personal
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/admin/grupos" className="hover:text-celeste-700">
+                    Grupos
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/admin/usuarios" className="hover:text-celeste-700">
+                    Usuarios
+                  </Link>
+                </li>
+              </>
             )}
           </ul>
         ) : (

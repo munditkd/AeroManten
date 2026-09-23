@@ -27,7 +27,14 @@ model User {
   username      String?   @unique
   email         String    @unique
   passwordHash  String
+  // "role" sigue siendo el super-usuario del sistema (ADMIN = acceso total,
+  // sin importar el grupo). "grupoId" define los permisos de
+  // insertar/modificar/borrar para todos los demás usuarios.
   role          Role      @default(USER)
+  grupoId       String?
+  // Persona de la tabla Personal que corresponde a esta cuenta de login (si
+  // ya se vinculó). Se usa para completar solo el "originador" de las OT.
+  personalId    String?   @unique
   emailVerified DateTime?
   image         String?
   createdAt     DateTime  @default(now())
@@ -38,6 +45,8 @@ model User {
   accounts            Account[]
   sessions            Session[]
   passwordResetTokens PasswordResetToken[]
+  grupo               Grupo?               @relation(fields: [grupoId], references: [id], onDelete: SetNull)
+  personal            Personal?            @relation(fields: [personalId], references: [id], onDelete: SetNull)
 
   @@map("users")
 }
@@ -137,6 +146,7 @@ model Aeronave {
 
 model Activo {
   id               String    @id @default(cuid())
+  codigo           Int       @unique @default(autoincrement())
   tipo             String
   marca            String?
   modelo           String?
@@ -258,6 +268,7 @@ model Personal {
   ordenesTrabajoOriginadas  OrdenTrabajo[]           @relation("OTOriginador")
   ordenesTrabajoResponsable OrdenTrabajo[]           @relation("OTResponsable")
   manoDeObra                OrdenTrabajoManoDeObra[]
+  user                      User?
 
   @@map("personal")
 }
@@ -278,6 +289,7 @@ model Grupo {
   updatedAt     DateTime @updatedAt
 
   personal Personal[]
+  usuarios User[]
 
   @@map("grupos")
 }
@@ -298,6 +310,9 @@ enum PrioridadOT {
 
 model OrdenTrabajo {
   id           String   @id @default(cuid())
+  // Contador interno para generar "codigo" (ej. OT-00001) solo, sin
+  // depender del valor que se haya tipeado a mano en OT viejas.
+  secuencia    Int      @unique @default(autoincrement())
   codigo       String   @unique
   descripcion  String   @db.Text
   // tipo/clase/categoria quedan como texto libre por ahora; se pueden

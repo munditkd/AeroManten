@@ -86,6 +86,7 @@ export default async function ActivoDetailPage({
       <h1 className="mt-2 text-2xl font-semibold text-gris-900">
         {activo.tipo}
       </h1>
+      <p className="mt-1 text-sm text-gris-500">Código {activo.codigo}</p>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-2">
         <div className="rounded-lg border border-gris-200 bg-white p-6">
@@ -133,7 +134,7 @@ export default async function ActivoDetailPage({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gris-700">
-                  Marca
+                  Fabricante
                 </label>
                 <input
                   name="marca"
@@ -143,7 +144,7 @@ export default async function ActivoDetailPage({
               </div>
               <div>
                 <label className="block text-xs font-medium text-gris-700">
-                  Modelo
+                  Número de Parte
                 </label>
                 <input
                   name="modelo"

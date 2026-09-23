@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { verificarPermiso } from "@/lib/permisos";
+import { verificarSinReferencias } from "@/lib/eliminar-guard";
 
 function str(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -12,6 +14,8 @@ function str(formData: FormData, key: string): string | undefined {
 }
 
 export async function createPropietario(formData: FormData) {
+  await verificarPermiso("insertar");
+
   const nombre = str(formData, "nombre");
   if (!nombre) throw new Error("El nombre es obligatorio");
 
@@ -29,6 +33,8 @@ export async function createPropietario(formData: FormData) {
 }
 
 export async function updatePropietario(id: string, formData: FormData) {
+  await verificarPermiso("modificar");
+
   const nombre = str(formData, "nombre");
   if (!nombre) throw new Error("El nombre es obligatorio");
 
@@ -48,6 +54,11 @@ export async function updatePropietario(id: string, formData: FormData) {
 }
 
 export async function deletePropietario(id: string) {
+  await verificarPermiso("borrar");
+
+  const aeronaves = await prisma.aeronave.count({ where: { propietarioId: id } });
+  verificarSinReferencias([{ nombre: "Aeronaves", cantidad: aeronaves }]);
+
   await prisma.propietario.delete({ where: { id } });
   revalidatePath("/admin/propietarios");
   redirect("/admin/propietarios");

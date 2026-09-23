@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { verificarPermiso } from "@/lib/permisos";
 
 function str(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -19,6 +20,8 @@ function num(formData: FormData, key: string): number | undefined {
 }
 
 export async function cargarMedidor(formData: FormData) {
+  await verificarPermiso("modificar");
+
   const aeronaveId = str(formData, "aeronaveId");
   const horas = num(formData, "horas") ?? 0;
   const ciclos = num(formData, "ciclos") ?? 0;

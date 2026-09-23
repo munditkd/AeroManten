@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { RolPersonal } from "@prisma/client";
+import { verificarSinReferencias } from "@/lib/eliminar-guard";
 
 function str(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -88,6 +89,19 @@ export async function updatePersonal(id: string, formData: FormData) {
 }
 
 export async function deletePersonal(id: string) {
+  const [originadas, responsable, manoDeObra, usuario] = await Promise.all([
+    prisma.ordenTrabajo.count({ where: { originadorId: id } }),
+    prisma.ordenTrabajo.count({ where: { responsableId: id } }),
+    prisma.ordenTrabajoManoDeObra.count({ where: { personalId: id } }),
+    prisma.user.count({ where: { personalId: id } }),
+  ]);
+  verificarSinReferencias([
+    { nombre: "Órdenes de Trabajo (originador)", cantidad: originadas },
+    { nombre: "Órdenes de Trabajo (responsable)", cantidad: responsable },
+    { nombre: "Mano de obra cargada", cantidad: manoDeObra },
+    { nombre: "Usuarios de login vinculados", cantidad: usuario },
+  ]);
+
   await prisma.personal.delete({ where: { id } });
   revalidatePath("/admin/personal");
   redirect("/admin/personal");

@@ -25,7 +25,7 @@ export default async function AeronavesPage() {
               <thead className="border-b border-gris-200 bg-gris-50 text-xs uppercase text-gris-500">
                 <tr>
                   <th className="px-4 py-3">Matrícula</th>
-                  <th className="px-4 py-3">Marca / Modelo</th>
+                  <th className="px-4 py-3">Fabricante / N° de Parte</th>
                   <th className="px-4 py-3">N° de serie</th>
                   <th className="px-4 py-3">Fabricación</th>
                   <th className="px-4 py-3">Horas TSN / TSO</th>
@@ -147,7 +147,7 @@ export default async function AeronavesPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gris-700">
-                      Marca
+                      Fabricante
                     </label>
                     <input
                       name="marca"
@@ -156,7 +156,7 @@ export default async function AeronavesPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gris-700">
-                      Modelo
+                      Número de Parte
                     </label>
                     <input
                       name="modelo"

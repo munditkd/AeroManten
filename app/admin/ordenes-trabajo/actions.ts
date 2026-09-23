@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { verificarPermiso } from "@/lib/permisos";
+import { verificarSinReferencias } from "@/lib/eliminar-guard";
 import { EstadoOT, PrioridadOT } from "@prisma/client";
 
 function str(formData: FormData, key: string): string | undefined {
@@ -33,10 +35,13 @@ function optionalRelationId(formData: FormData, key: string): string | null {
   return trimmed === "" ? null : trimmed;
 }
 
-async function nombreUsuarioActual(): Promise<string | null> {
+async function usuarioActual() {
   const session = await auth();
-  if (!session?.user) return null;
-  return session.user.name || session.user.email || null;
+  if (!session?.user?.id) return null;
+  return prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { name: true, email: true, personalId: true },
+  });
 }
 
 function ordenTrabajoData(formData: FormData) {
@@ -52,7 +57,6 @@ function ordenTrabajoData(formData: FormData) {
     fechaFinPlanificado: date(formData, "fechaFinPlanificado") ?? null,
     duracionEstimada: num(formData, "duracionEstimada") ?? null,
     duracionReal: num(formData, "duracionReal") ?? null,
-    originadorId: optionalRelationId(formData, "originadorId"),
     responsableId: optionalRelationId(formData, "responsableId"),
     falla: str(formData, "falla") ?? null,
     fechaCerrado: date(formData, "fechaCerrado") ?? null,
@@ -63,51 +67,64 @@ function ordenTrabajoData(formData: FormData) {
 }
 
 export async function createOrdenTrabajo(formData: FormData) {
-  const codigo = str(formData, "codigo");
+  await verificarPermiso("insertar");
+
   const descripcion = str(formData, "descripcion");
   const fecha = date(formData, "fecha");
   const estado = str(formData, "estado") as EstadoOT | undefined;
   const prioridad = str(formData, "prioridad") as PrioridadOT | undefined;
-  if (!codigo || !descripcion || !fecha) {
-    throw new Error("Código, descripción y fecha son obligatorios");
+  if (!descripcion || !fecha) {
+    throw new Error("Descripción y fecha son obligatorias");
   }
 
-  await prisma.ordenTrabajo.create({
+  const usuario = await usuarioActual();
+
+  // codigo se completa recién después de crear, con el número (secuencia)
+  // que MySQL le asigna solo. El valor temporal nunca queda visible.
+  const creada = await prisma.ordenTrabajo.create({
     data: {
-      codigo,
+      codigo: `TMP-${Date.now()}`,
       descripcion,
       fecha,
       estado: estado && Object.values(EstadoOT).includes(estado) ? estado : undefined,
       prioridad:
         prioridad && Object.values(PrioridadOT).includes(prioridad) ? prioridad : undefined,
-      actualizadoPor: await nombreUsuarioActual(),
+      originadorId: usuario?.personalId ?? null,
+      actualizadoPor: usuario?.name || usuario?.email || null,
       ...ordenTrabajoData(formData),
     },
+  });
+
+  await prisma.ordenTrabajo.update({
+    where: { id: creada.id },
+    data: { codigo: `OT-${String(creada.secuencia).padStart(5, "0")}` },
   });
 
   revalidatePath("/admin/ordenes-trabajo");
 }
 
 export async function updateOrdenTrabajo(id: string, formData: FormData) {
-  const codigo = str(formData, "codigo");
+  await verificarPermiso("modificar");
+
   const descripcion = str(formData, "descripcion");
   const fecha = date(formData, "fecha");
   const estado = str(formData, "estado") as EstadoOT | undefined;
   const prioridad = str(formData, "prioridad") as PrioridadOT | undefined;
-  if (!codigo || !descripcion || !fecha) {
-    throw new Error("Código, descripción y fecha son obligatorios");
+  if (!descripcion || !fecha) {
+    throw new Error("Descripción y fecha son obligatorias");
   }
+
+  const usuario = await usuarioActual();
 
   await prisma.ordenTrabajo.update({
     where: { id },
     data: {
-      codigo,
       descripcion,
       fecha,
       estado: estado && Object.values(EstadoOT).includes(estado) ? estado : undefined,
       prioridad:
         prioridad && Object.values(PrioridadOT).includes(prioridad) ? prioridad : undefined,
-      actualizadoPor: await nombreUsuarioActual(),
+      actualizadoPor: usuario?.name || usuario?.email || null,
       ...ordenTrabajoData(formData),
     },
   });
@@ -117,12 +134,21 @@ export async function updateOrdenTrabajo(id: string, formData: FormData) {
 }
 
 export async function deleteOrdenTrabajo(id: string) {
+  await verificarPermiso("borrar");
+
+  const manoDeObra = await prisma.ordenTrabajoManoDeObra.count({
+    where: { ordenTrabajoId: id },
+  });
+  verificarSinReferencias([{ nombre: "Mano de obra cargada", cantidad: manoDeObra }]);
+
   await prisma.ordenTrabajo.delete({ where: { id } });
   revalidatePath("/admin/ordenes-trabajo");
   redirect("/admin/ordenes-trabajo");
 }
 
 export async function createManoDeObra(ordenTrabajoId: string, formData: FormData) {
+  await verificarPermiso("insertar");
+
   const personalId = optionalRelationId(formData, "personalId");
   const horasTrabajadas = num(formData, "horasTrabajadas");
   const tareas = str(formData, "tareas");
@@ -146,6 +172,8 @@ export async function createManoDeObra(ordenTrabajoId: string, formData: FormDat
 }
 
 export async function deleteManoDeObra(ordenTrabajoId: string, id: string) {
+  await verificarPermiso("borrar");
+
   await prisma.ordenTrabajoManoDeObra.delete({ where: { id } });
   revalidatePath(`/admin/ordenes-trabajo/${ordenTrabajoId}`);
 }

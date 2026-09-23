@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { verificarSinReferencias } from "@/lib/eliminar-guard";
 
 function str(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -64,6 +65,15 @@ export async function updateGrupo(id: string, formData: FormData) {
 }
 
 export async function deleteGrupo(id: string) {
+  const [personal, usuarios] = await Promise.all([
+    prisma.personal.count({ where: { grupoId: id } }),
+    prisma.user.count({ where: { grupoId: id } }),
+  ]);
+  verificarSinReferencias([
+    { nombre: "Personal", cantidad: personal },
+    { nombre: "Usuarios", cantidad: usuarios },
+  ]);
+
   await prisma.grupo.delete({ where: { id } });
   revalidatePath("/admin/grupos");
   redirect("/admin/grupos");

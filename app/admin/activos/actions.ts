@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { verificarPermiso } from "@/lib/permisos";
+import { verificarSinReferencias } from "@/lib/eliminar-guard";
 
 function str(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -48,6 +50,8 @@ function activoData(formData: FormData) {
 }
 
 export async function createActivo(formData: FormData) {
+  await verificarPermiso("insertar");
+
   const tipo = str(formData, "tipo");
   if (!tipo) {
     throw new Error("El tipo es obligatorio");
@@ -67,6 +71,8 @@ export async function createActivo(formData: FormData) {
 }
 
 export async function updateActivo(id: string, formData: FormData) {
+  await verificarPermiso("modificar");
+
   const tipo = str(formData, "tipo");
   if (!tipo) throw new Error("El tipo es obligatorio");
 
@@ -91,6 +97,19 @@ export async function updateActivo(id: string, formData: FormData) {
 }
 
 export async function deleteActivo(id: string) {
+  await verificarPermiso("borrar");
+
+  const [mantenimientos, mantenimientosPreventivos, ordenesTrabajo] = await Promise.all([
+    prisma.registroMantenimiento.count({ where: { activoId: id } }),
+    prisma.activoMantenimientoPreventivo.count({ where: { activoId: id } }),
+    prisma.ordenTrabajo.count({ where: { activoId: id } }),
+  ]);
+  verificarSinReferencias([
+    { nombre: "Registros de mantenimiento", cantidad: mantenimientos },
+    { nombre: "Mantenimientos preventivos relacionados", cantidad: mantenimientosPreventivos },
+    { nombre: "Órdenes de Trabajo", cantidad: ordenesTrabajo },
+  ]);
+
   const activo = await prisma.activo.delete({ where: { id } });
   revalidatePath("/admin/activos");
   if (activo.aeronaveId) {

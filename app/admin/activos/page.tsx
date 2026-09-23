@@ -49,8 +49,9 @@ export default async function ActivosPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-gris-200 bg-gris-50 text-xs uppercase text-gris-500">
                 <tr>
+                  <th className="px-4 py-3">Código</th>
                   <th className="px-4 py-3">Tipo</th>
-                  <th className="px-4 py-3">Marca / Modelo</th>
+                  <th className="px-4 py-3">Fabricante / N° de Parte</th>
                   <th className="px-4 py-3">N° de serie</th>
                   <th className="px-4 py-3">Fabricación</th>
                   <th className="px-4 py-3">Horas TSN / TSO</th>
@@ -62,6 +63,9 @@ export default async function ActivosPage() {
               <tbody className="divide-y divide-gris-100">
                 {activos.map((activo) => (
                   <tr key={activo.id} className="hover:bg-gris-50">
+                    <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
+                      {activo.codigo}
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <Link
                         href={`/admin/activos/${activo.id}`}
@@ -110,7 +114,7 @@ export default async function ActivosPage() {
                 {activos.length === 0 && (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-4 py-6 text-center text-gris-500"
                     >
                       Todavía no hay componentes cargados.
@@ -168,7 +172,7 @@ export default async function ActivosPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gris-700">
-                      Marca
+                      Fabricante
                     </label>
                     <input
                       name="marca"
@@ -177,7 +181,7 @@ export default async function ActivosPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gris-700">
-                      Modelo
+                      Número de Parte
                     </label>
                     <input
                       name="modelo"

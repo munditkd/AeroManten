@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { verificarPermiso } from "@/lib/permisos";
+import { verificarSinReferencias } from "@/lib/eliminar-guard";
 
 function str(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -30,6 +32,8 @@ function parseDestino(formData: FormData): { activoId?: string; aeronaveId?: str
 }
 
 export async function createRelaciones(formData: FormData) {
+  await verificarPermiso("insertar");
+
   const { activoId, aeronaveId } = parseDestino(formData);
   const mpIds = formData
     .getAll("mpIds")
@@ -76,6 +80,13 @@ export async function createRelaciones(formData: FormData) {
 }
 
 export async function deleteRelacion(id: string) {
+  await verificarPermiso("borrar");
+
+  const realizaciones = await prisma.mantenimientoPreventivoRealizado.count({
+    where: { relacionId: id },
+  });
+  verificarSinReferencias([{ nombre: "Realizaciones registradas", cantidad: realizaciones }]);
+
   await prisma.activoMantenimientoPreventivo.delete({ where: { id } });
   revalidatePath("/admin/activos/relacionar-mp");
   revalidatePath("/admin/activos/vencimientos-mp");
@@ -83,6 +94,8 @@ export async function deleteRelacion(id: string) {
 }
 
 export async function createRealizacion(relacionId: string, formData: FormData) {
+  await verificarPermiso("insertar");
+
   const fecha = str(formData, "fecha");
   if (!fecha) throw new Error("La fecha es obligatoria");
 
@@ -102,6 +115,8 @@ export async function createRealizacion(relacionId: string, formData: FormData) 
 }
 
 export async function deleteRealizacion(id: string) {
+  await verificarPermiso("borrar");
+
   const realizado = await prisma.mantenimientoPreventivoRealizado.delete({
     where: { id },
   });

@@ -89,25 +89,18 @@ export default async function OrdenesTrabajoPage() {
         <div>
           <div className="rounded-lg border border-gris-200 bg-white p-6">
             <h2 className="text-sm font-semibold text-gris-900">Nueva orden de trabajo</h2>
+            <p className="mt-1 text-xs text-gris-400">
+              El código se asigna solo (OT-00001, OT-00002...) al guardar.
+            </p>
             <form action={createOrdenTrabajo} className="mt-4 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gris-700">Código *</label>
-                  <input
-                    name="codigo"
-                    required
-                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gris-700">Fecha *</label>
-                  <input
-                    name="fecha"
-                    type="date"
-                    required
-                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-medium text-gris-700">Fecha *</label>
+                <input
+                  name="fecha"
+                  type="date"
+                  required
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gris-700">Descripción *</label>
@@ -219,37 +212,23 @@ export default async function OrdenesTrabajoPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gris-700">Originador</label>
-                  <select
-                    name="originadorId"
-                    defaultValue=""
-                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                  >
-                    <option value="">Sin especificar</option>
-                    {personal.map((persona) => (
-                      <option key={persona.id} value={persona.id}>
-                        {persona.apellido}, {persona.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gris-700">Responsable</label>
-                  <select
-                    name="responsableId"
-                    defaultValue=""
-                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                  >
-                    <option value="">Sin asignar</option>
-                    {personal.map((persona) => (
-                      <option key={persona.id} value={persona.id}>
-                        {persona.apellido}, {persona.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-xs font-medium text-gris-700">Responsable</label>
+                <select
+                  name="responsableId"
+                  defaultValue=""
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                >
+                  <option value="">Sin asignar</option>
+                  {personal.map((persona) => (
+                    <option key={persona.id} value={persona.id}>
+                      {persona.apellido}, {persona.nombre}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-gris-400">
+                  El originador se completa solo con tu usuario al crear la OT.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 border-t border-gris-100 pt-3">

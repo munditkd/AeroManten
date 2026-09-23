@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { verificarPermiso } from "@/lib/permisos";
+import { verificarSinReferencias } from "@/lib/eliminar-guard";
 
 function str(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -30,6 +32,8 @@ function mantenimientoData(formData: FormData) {
 }
 
 export async function createMantenimientoPreventivo(formData: FormData) {
+  await verificarPermiso("insertar");
+
   const codigo = str(formData, "codigo");
   const descripcion = str(formData, "descripcion");
   const tarea = str(formData, "tarea");
@@ -60,6 +64,8 @@ export async function createMantenimientoPreventivo(formData: FormData) {
 }
 
 export async function updateMantenimientoPreventivo(id: string, formData: FormData) {
+  await verificarPermiso("modificar");
+
   const codigo = str(formData, "codigo");
   const descripcion = str(formData, "descripcion");
   const tarea = str(formData, "tarea");
@@ -92,6 +98,17 @@ export async function updateMantenimientoPreventivo(id: string, formData: FormDa
 }
 
 export async function deleteMantenimientoPreventivo(id: string) {
+  await verificarPermiso("borrar");
+
+  const [relaciones, ordenesTrabajo] = await Promise.all([
+    prisma.activoMantenimientoPreventivo.count({ where: { mantenimientoPreventivoId: id } }),
+    prisma.ordenTrabajo.count({ where: { mantenimientoPreventivoId: id } }),
+  ]);
+  verificarSinReferencias([
+    { nombre: "Activos/Aeronaves relacionados", cantidad: relaciones },
+    { nombre: "Órdenes de Trabajo", cantidad: ordenesTrabajo },
+  ]);
+
   await prisma.mantenimientoPreventivo.delete({ where: { id } });
   revalidatePath("/admin/mantenimiento-preventivo");
   redirect("/admin/mantenimiento-preventivo");

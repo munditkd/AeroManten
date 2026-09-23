@@ -6,7 +6,7 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  const ADMIN_ONLY_PREFIXES = ["/admin/personal", "/admin/grupos"];
+  const ADMIN_ONLY_PREFIXES = ["/admin/personal", "/admin/grupos", "/admin/usuarios"];
   const isAdminOnlyRoute = ADMIN_ONLY_PREFIXES.some((prefix) =>
     req.nextUrl.pathname.startsWith(prefix)
   );

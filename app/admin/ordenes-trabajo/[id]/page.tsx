@@ -32,6 +32,7 @@ export default async function OrdenTrabajoDetailPage({
       where: { id },
       include: {
         manoDeObra: { orderBy: { createdAt: "desc" }, include: { personal: true } },
+        originador: true,
       },
     }),
     prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
@@ -76,12 +77,11 @@ export default async function OrdenTrabajoDetailPage({
           <form action={updateOrdenTrabajoWithId} className="mt-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gris-700">Código *</label>
+                <label className="block text-xs font-medium text-gris-700">Código</label>
                 <input
-                  name="codigo"
-                  required
-                  defaultValue={ot.codigo}
-                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                  disabled
+                  value={ot.codigo}
+                  className="mt-1 w-full rounded-md border border-gris-200 bg-gris-50 px-3 py-2 text-sm text-gris-500"
                 />
               </div>
               <div>
@@ -227,18 +227,15 @@ export default async function OrdenTrabajoDetailPage({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gris-700">Originador</label>
-                <select
-                  name="originadorId"
-                  defaultValue={ot.originadorId ?? ""}
-                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                >
-                  <option value="">Sin especificar</option>
-                  {personal.map((persona) => (
-                    <option key={persona.id} value={persona.id}>
-                      {persona.apellido}, {persona.nombre}
-                    </option>
-                  ))}
-                </select>
+                <input
+                  disabled
+                  value={
+                    ot.originador
+                      ? `${ot.originador.apellido}, ${ot.originador.nombre}`
+                      : "Sin especificar"
+                  }
+                  className="mt-1 w-full rounded-md border border-gris-200 bg-gris-50 px-3 py-2 text-sm text-gris-500"
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gris-700">Responsable</label>

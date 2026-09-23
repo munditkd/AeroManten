@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 const ITEMS = [
   { href: "/admin/personal", label: "Personal" },
   { href: "/admin/grupos", label: "Grupos" },
+  { href: "/admin/usuarios", label: "Usuarios" },
 ];
 
 export function AdministracionMenu() {

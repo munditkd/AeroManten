@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { verificarPermiso } from "@/lib/permisos";
+import { verificarSinReferencias } from "@/lib/eliminar-guard";
 
 function str(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -40,6 +42,8 @@ function aeronaveData(formData: FormData) {
 }
 
 export async function createAeronave(formData: FormData) {
+  await verificarPermiso("insertar");
+
   const propietarioId = str(formData, "propietarioId");
   const matricula = str(formData, "matricula");
   if (!propietarioId || !matricula) {
@@ -69,6 +73,8 @@ export async function createAeronave(formData: FormData) {
 }
 
 export async function updateAeronave(id: string, formData: FormData) {
+  await verificarPermiso("modificar");
+
   const matricula = str(formData, "matricula");
   if (!matricula) throw new Error("La matrícula es obligatoria");
 
@@ -97,6 +103,22 @@ export async function updateAeronave(id: string, formData: FormData) {
 }
 
 export async function deleteAeronave(id: string) {
+  await verificarPermiso("borrar");
+
+  const [activos, mantenimientos, mantenimientosPreventivos, ordenesTrabajo] =
+    await Promise.all([
+      prisma.activo.count({ where: { aeronaveId: id } }),
+      prisma.registroMantenimiento.count({ where: { aeronaveId: id } }),
+      prisma.activoMantenimientoPreventivo.count({ where: { aeronaveId: id } }),
+      prisma.ordenTrabajo.count({ where: { aeronaveId: id } }),
+    ]);
+  verificarSinReferencias([
+    { nombre: "Activos", cantidad: activos },
+    { nombre: "Registros de mantenimiento", cantidad: mantenimientos },
+    { nombre: "Mantenimientos preventivos relacionados", cantidad: mantenimientosPreventivos },
+    { nombre: "Órdenes de Trabajo", cantidad: ordenesTrabajo },
+  ]);
+
   const aeronave = await prisma.aeronave.delete({ where: { id } });
   revalidatePath(`/admin/propietarios/${aeronave.propietarioId}`);
   revalidatePath("/admin/aeronaves");
@@ -104,6 +126,8 @@ export async function deleteAeronave(id: string) {
 }
 
 export async function createMantenimiento(formData: FormData) {
+  await verificarPermiso("insertar");
+
   const aeronaveId = str(formData, "aeronaveId");
   const activoId = str(formData, "activoId");
   const descripcion = str(formData, "descripcion");
@@ -126,6 +150,8 @@ export async function createMantenimiento(formData: FormData) {
 }
 
 export async function deleteMantenimiento(id: string) {
+  await verificarPermiso("borrar");
+
   const registro = await prisma.registroMantenimiento.delete({
     where: { id },
   });

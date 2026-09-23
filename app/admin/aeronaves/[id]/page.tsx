@@ -106,7 +106,7 @@ export default async function AeronaveDetailPage({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gris-700">
-                  Marca
+                  Fabricante
                 </label>
                 <input
                   name="marca"
@@ -116,7 +116,7 @@ export default async function AeronaveDetailPage({
               </div>
               <div>
                 <label className="block text-xs font-medium text-gris-700">
-                  Modelo
+                  Número de Parte
                 </label>
                 <input
                   name="modelo"
@@ -330,7 +330,7 @@ export default async function AeronaveDetailPage({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gris-700">
-                    Marca
+                    Fabricante
                   </label>
                   <input
                     name="marca"
@@ -339,7 +339,7 @@ export default async function AeronaveDetailPage({
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gris-700">
-                    Modelo
+                    Número de Parte
                   </label>
                   <input
                     name="modelo"
