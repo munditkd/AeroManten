@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createActivo } from "./actions";
+import { MontadosFilter } from "./montados-filter";
 
 const TIPOS_ACTIVO_SUGERIDOS = [
   "Motor",
@@ -11,14 +13,35 @@ const TIPOS_ACTIVO_SUGERIDOS = [
   "Instrumento",
 ];
 
-export default async function ActivosPage() {
+export default async function ActivosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ vista?: string; aeronaveId?: string }>;
+}) {
+  const { vista, aeronaveId } = await searchParams;
+
+  let where: Prisma.ActivoWhereInput = {};
+  if (vista === "deposito") {
+    where = { aeronaveId: null };
+  } else if (vista === "montados") {
+    where = aeronaveId ? { aeronaveId } : { aeronaveId: { not: null } };
+  }
+
   const [activos, aeronaves] = await Promise.all([
     prisma.activo.findMany({
+      where,
       orderBy: [{ aeronave: { matricula: "asc" } }, { tipo: "asc" }],
       include: { aeronave: true },
     }),
     prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
   ]);
+
+  const pill = (active: boolean) =>
+    `rounded-md border px-3 py-1.5 text-sm font-medium ${
+      active
+        ? "border-celeste-700 bg-celeste-700 text-white"
+        : "border-gris-300 text-gris-700 hover:bg-gris-50"
+    }`;
 
   return (
     <div>
@@ -45,6 +68,20 @@ export default async function ActivosPage() {
         </div>
 
         <div>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <Link href="/admin/activos" className={pill(!vista)}>
+              Todos los Activos
+            </Link>
+            <MontadosFilter
+              aeronaves={aeronaves}
+              selectedAeronaveId={vista === "montados" ? aeronaveId : undefined}
+              active={vista === "montados"}
+            />
+            <Link href="/admin/activos?vista=deposito" className={pill(vista === "deposito")}>
+              Activos en Depósito
+            </Link>
+          </div>
+
           <div className="overflow-x-auto rounded-lg border border-gris-200 bg-white">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-gris-200 bg-gris-50 text-xs uppercase text-gris-500">
@@ -117,7 +154,11 @@ export default async function ActivosPage() {
                       colSpan={9}
                       className="px-4 py-6 text-center text-gris-500"
                     >
-                      Todavía no hay componentes cargados.
+                      {vista === "deposito"
+                        ? "No hay activos en depósito."
+                        : vista === "montados"
+                          ? "No hay activos montados con ese filtro."
+                          : "Todavía no hay componentes cargados."}
                     </td>
                   </tr>
                 )}
