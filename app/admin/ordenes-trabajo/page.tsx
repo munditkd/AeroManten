@@ -141,7 +141,7 @@ export default async function OrdenesTrabajoPage() {
                   <label className="block text-xs font-medium text-gris-700">Estado</label>
                   <select
                     name="estado"
-                    defaultValue="ABIERTA"
+                    defaultValue="PENDIENTE"
                     className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
                   >
                     {ESTADOS_OT.map((estado) => (

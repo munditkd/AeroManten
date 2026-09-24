@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { verificarPermiso } from "@/lib/permisos";
 import { verificarSinReferencias } from "@/lib/eliminar-guard";
+import { crearOrdenTrabajoConCodigo } from "@/lib/ordenes-trabajo";
+import { calcularVencimiento, formatFactor } from "@/lib/mantenimiento-preventivo";
 
 function str(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -122,4 +124,60 @@ export async function deleteRealizacion(id: string) {
   });
   revalidatePath(`/admin/activos/relacionar-mp/${realizado.relacionId}`);
   revalidatePath("/admin/activos/vencimientos-mp");
+}
+
+export async function generarOTDesdeMP(relacionId: string) {
+  await verificarPermiso("insertar");
+
+  const relacion = await prisma.activoMantenimientoPreventivo.findUnique({
+    where: { id: relacionId },
+    include: {
+      activo: { include: { aeronave: true } },
+      aeronave: true,
+      mantenimientoPreventivo: true,
+      realizaciones: { orderBy: { fecha: "desc" }, take: 1 },
+    },
+  });
+  if (!relacion) throw new Error("La relación no existe");
+
+  const esAeronave = Boolean(relacion.aeronave);
+  const horasActuales = esAeronave
+    ? relacion.aeronave!.horasTSN
+    : (relacion.activo?.horasTSN ?? null);
+  const ciclosActuales = esAeronave
+    ? relacion.aeronave!.ciclosTSN
+    : (relacion.activo?.ciclosTSN ?? null);
+  const ultima = relacion.realizaciones[0] ?? null;
+
+  const venc = calcularVencimiento({
+    mp: relacion.mantenimientoPreventivo,
+    activoHoras: horasActuales,
+    activoCiclos: ciclosActuales,
+    ultimaRealizacion: ultima
+      ? { fecha: ultima.fecha, horas: ultima.horas, ciclos: ultima.ciclos }
+      : null,
+  });
+
+  const destino = esAeronave
+    ? relacion.aeronave!.matricula
+    : `${relacion.activo?.tipo} (${relacion.activo?.aeronave?.matricula ?? "en depósito"})`;
+
+  const comentarios =
+    venc.factores.length > 0
+      ? venc.factores.map((factor) => `${factor.tipo}: ${formatFactor(factor)}`).join(" · ")
+      : undefined;
+
+  const ot = await crearOrdenTrabajoConCodigo({
+    descripcion: `${relacion.mantenimientoPreventivo.descripcion} — generada desde MP ${relacion.mantenimientoPreventivo.codigo} (${destino})`,
+    tipo: "Preventivo",
+    fecha: new Date(),
+    aeronaveId: esAeronave ? relacion.aeronaveId : (relacion.activo?.aeronaveId ?? null),
+    activoId: relacion.activoId,
+    mantenimientoPreventivoId: relacion.mantenimientoPreventivoId,
+    prioridad: venc.estado === "vencido" ? "ALTA" : "MEDIA",
+    comentarios,
+  });
+
+  revalidatePath("/admin/ordenes-trabajo");
+  redirect(`/admin/ordenes-trabajo/${ot.id}`);
 }

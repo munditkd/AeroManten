@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
 import { verificarPermiso } from "@/lib/permisos";
 import { verificarSinReferencias } from "@/lib/eliminar-guard";
+import { crearOrdenTrabajoConCodigo, usuarioActualParaOT } from "@/lib/ordenes-trabajo";
 import { EstadoOT, PrioridadOT } from "@prisma/client";
 
 function str(formData: FormData, key: string): string | undefined {
@@ -33,15 +33,6 @@ function optionalRelationId(formData: FormData, key: string): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed === "" ? null : trimmed;
-}
-
-async function usuarioActual() {
-  const session = await auth();
-  if (!session?.user?.id) return null;
-  return prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { name: true, email: true, personalId: true },
-  });
 }
 
 function ordenTrabajoData(formData: FormData) {
@@ -77,27 +68,13 @@ export async function createOrdenTrabajo(formData: FormData) {
     throw new Error("Descripción y fecha son obligatorias");
   }
 
-  const usuario = await usuarioActual();
-
-  // codigo se completa recién después de crear, con el número (secuencia)
-  // que MySQL le asigna solo. El valor temporal nunca queda visible.
-  const creada = await prisma.ordenTrabajo.create({
-    data: {
-      codigo: `TMP-${Date.now()}`,
-      descripcion,
-      fecha,
-      estado: estado && Object.values(EstadoOT).includes(estado) ? estado : undefined,
-      prioridad:
-        prioridad && Object.values(PrioridadOT).includes(prioridad) ? prioridad : undefined,
-      originadorId: usuario?.personalId ?? null,
-      actualizadoPor: usuario?.name || usuario?.email || null,
-      ...ordenTrabajoData(formData),
-    },
-  });
-
-  await prisma.ordenTrabajo.update({
-    where: { id: creada.id },
-    data: { codigo: `OT-${String(creada.secuencia).padStart(5, "0")}` },
+  await crearOrdenTrabajoConCodigo({
+    descripcion,
+    fecha,
+    estado: estado && Object.values(EstadoOT).includes(estado) ? estado : undefined,
+    prioridad:
+      prioridad && Object.values(PrioridadOT).includes(prioridad) ? prioridad : undefined,
+    ...ordenTrabajoData(formData),
   });
 
   revalidatePath("/admin/ordenes-trabajo");
@@ -114,7 +91,7 @@ export async function updateOrdenTrabajo(id: string, formData: FormData) {
     throw new Error("Descripción y fecha son obligatorias");
   }
 
-  const usuario = await usuarioActual();
+  const usuario = await usuarioActualParaOT();
 
   await prisma.ordenTrabajo.update({
     where: { id },

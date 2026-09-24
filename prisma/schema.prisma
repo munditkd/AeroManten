@@ -300,9 +300,14 @@ model Grupo {
 }
 
 enum EstadoOT {
-  ABIERTA
-  EN_PROCESO
-  CERRADA
+  PENDIENTE
+  EN_EJECUCION
+  DETENIDA
+  EN_ESPERA
+  EN_REVISION
+  APROBADA
+  TERMINADA_E_S
+  TERMINADA_F_S
   CANCELADA
 }
 
@@ -326,7 +331,7 @@ model OrdenTrabajo {
   clase        String?
   categoria    String?
   fecha        DateTime
-  estado       EstadoOT @default(ABIERTA)
+  estado       EstadoOT @default(PENDIENTE)
   departamento String?
 
   // Null = OT no ligada a una aeronave/activo puntual (ej. tarea de taller).

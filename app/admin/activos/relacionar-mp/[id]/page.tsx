@@ -7,7 +7,8 @@ import {
   ESTADO_LABEL,
   ESTADO_BADGE_CLASS,
 } from "@/lib/mantenimiento-preventivo";
-import { createRealizacion, deleteRealizacion, deleteRelacion } from "../actions";
+import { createRealizacion, deleteRealizacion, deleteRelacion, generarOTDesdeMP } from "../actions";
+import { GenerarOTButton } from "./generar-ot-button";
 
 export default async function RelacionMPDetailPage({
   params,
@@ -44,6 +45,7 @@ export default async function RelacionMPDetailPage({
 
   const createRealizacionWithId = createRealizacion.bind(null, relacion.id);
   const deleteRelacionWithId = deleteRelacion.bind(null, relacion.id);
+  const generarOTWithId = generarOTDesdeMP.bind(null, relacion.id);
 
   return (
     <div>
@@ -133,6 +135,9 @@ export default async function RelacionMPDetailPage({
               Horas/ciclos actuales {esAeronave ? "de la aeronave" : "del activo"} (TSN):{" "}
               {horasActuales ?? "—"} h / {ciclosActuales ?? "—"} cy
             </p>
+            <div className="mt-4 border-t border-gris-100 pt-4">
+              <GenerarOTButton vencido={venc.estado === "vencido"} action={generarOTWithId} />
+            </div>
           </div>
 
           <form action={deleteRelacionWithId}>
