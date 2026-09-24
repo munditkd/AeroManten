@@ -102,8 +102,8 @@ export async function SiteHeader() {
               </Link>
             </li>
             <li>
-              <Link href="/admin/medidores" className="hover:text-celeste-700">
-                Carga de Medidores
+              <Link href="/admin/vuelos" className="hover:text-celeste-700">
+                Carga de Vuelos
               </Link>
             </li>
             <li>

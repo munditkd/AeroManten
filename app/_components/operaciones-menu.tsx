@@ -7,7 +7,7 @@ const ITEMS = [
   { href: "/admin/propietarios", label: "Propietarios" },
   { href: "/admin/aeronaves", label: "Aeronaves" },
   { href: "/admin/activos", label: "Activos" },
-  { href: "/admin/medidores", label: "Carga de Medidores" },
+  { href: "/admin/vuelos", label: "Carga de Vuelos" },
   { href: "/admin/mantenimiento-preventivo", label: "Mantenimiento Preventivo" },
   { href: "/admin/ordenes-trabajo", label: "Órdenes de Trabajo" },
 ];

@@ -148,6 +148,7 @@ model Aeronave {
   mantenimientos            RegistroMantenimiento[]
   mantenimientosPreventivos ActivoMantenimientoPreventivo[]
   ordenesTrabajo            OrdenTrabajo[]
+  vuelos                    RegistroVuelo[]
 
   @@map("aeronaves")
 }
@@ -279,6 +280,7 @@ model Personal {
   ordenesTrabajoOriginadas  OrdenTrabajo[]           @relation("OTOriginador")
   ordenesTrabajoResponsable OrdenTrabajo[]           @relation("OTResponsable")
   manoDeObra                OrdenTrabajoManoDeObra[]
+  vuelosComoPiloto          RegistroVuelo[]
   user                      User?
 
   @@map("personal")
@@ -407,4 +409,31 @@ model OrdenTrabajoManoDeObra {
   personal     Personal?    @relation(fields: [personalId], references: [id], onDelete: SetNull)
 
   @@map("ordenes_trabajo_mano_obra")
+}
+
+// Bitácora de vuelo. Se carga desde la pantalla "Carga de Vuelos", que
+// además sigue sumando horas/ciclos a la aeronave y sus activos montados
+// (mismo cálculo que ya existía, sin cambios).
+model RegistroVuelo {
+  id                String    @id @default(cuid())
+  aeronaveId        String
+  pilotoId          String?
+  paisOrigen        String?
+  aeropuertoOrigen  String?
+  fechaOrigen       DateTime?
+  horaOrigen        String?
+  paisDestino       String?
+  aeropuertoDestino String?
+  fechaDestino      DateTime?
+  horaDestino       String?
+  tiempoVuelo       Float?
+  ciclos            Int?
+  observaciones     String?   @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  aeronave Aeronave  @relation(fields: [aeronaveId], references: [id], onDelete: Cascade)
+  piloto   Personal? @relation(fields: [pilotoId], references: [id], onDelete: SetNull)
+
+  @@map("registros_vuelo")
 }

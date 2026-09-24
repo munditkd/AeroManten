@@ -89,17 +89,19 @@ export async function updatePersonal(id: string, formData: FormData) {
 }
 
 export async function deletePersonal(id: string) {
-  const [originadas, responsable, manoDeObra, usuario] = await Promise.all([
+  const [originadas, responsable, manoDeObra, usuario, vuelos] = await Promise.all([
     prisma.ordenTrabajo.count({ where: { originadorId: id } }),
     prisma.ordenTrabajo.count({ where: { responsableId: id } }),
     prisma.ordenTrabajoManoDeObra.count({ where: { personalId: id } }),
     prisma.user.count({ where: { personalId: id } }),
+    prisma.registroVuelo.count({ where: { pilotoId: id } }),
   ]);
   verificarSinReferencias([
     { nombre: "Órdenes de Trabajo (originador)", cantidad: originadas },
     { nombre: "Órdenes de Trabajo (responsable)", cantidad: responsable },
     { nombre: "Mano de obra cargada", cantidad: manoDeObra },
     { nombre: "Usuarios de login vinculados", cantidad: usuario },
+    { nombre: "Vuelos como piloto", cantidad: vuelos },
   ]);
 
   await prisma.personal.delete({ where: { id } });

@@ -19,7 +19,12 @@ function num(formData: FormData, key: string): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
-export async function cargarMedidor(formData: FormData) {
+function date(formData: FormData, key: string): Date | undefined {
+  const value = str(formData, key);
+  return value ? new Date(value) : undefined;
+}
+
+export async function cargarVuelo(formData: FormData) {
   await verificarPermiso("modificar");
 
   const aeronaveId = str(formData, "aeronaveId");
@@ -45,6 +50,9 @@ export async function cargarMedidor(formData: FormData) {
   // No se usa Prisma `increment`: en MySQL, NULL + numero da NULL, así que un
   // activo/aeronave sin horas cargadas previamente se quedaría en NULL en vez
   // de arrancar a acumular. Por eso se calcula el nuevo valor a mano.
+  // Esta parte (sumar a aeronave y activos) es la rutina de carga de
+  // medidores ya desarrollada, sin cambios; solo se le agrega, en la misma
+  // transacción, el registro de la bitácora de vuelo.
   await prisma.$transaction([
     prisma.aeronave.update({
       where: { id: aeronaveId },
@@ -66,9 +74,26 @@ export async function cargarMedidor(formData: FormData) {
         },
       })
     ),
+    prisma.registroVuelo.create({
+      data: {
+        aeronaveId,
+        pilotoId: str(formData, "pilotoId") ?? null,
+        paisOrigen: str(formData, "paisOrigen") ?? null,
+        aeropuertoOrigen: str(formData, "aeropuertoOrigen") ?? null,
+        fechaOrigen: date(formData, "fechaOrigen") ?? null,
+        horaOrigen: str(formData, "horaOrigen") ?? null,
+        paisDestino: str(formData, "paisDestino") ?? null,
+        aeropuertoDestino: str(formData, "aeropuertoDestino") ?? null,
+        fechaDestino: date(formData, "fechaDestino") ?? null,
+        horaDestino: str(formData, "horaDestino") ?? null,
+        tiempoVuelo: horas || null,
+        ciclos: ciclos || null,
+        observaciones: str(formData, "observaciones") ?? null,
+      },
+    }),
   ]);
 
-  revalidatePath("/admin/medidores");
+  revalidatePath("/admin/vuelos");
   revalidatePath(`/admin/aeronaves/${aeronaveId}`);
   revalidatePath("/admin/aeronaves");
   revalidatePath("/admin/activos");
@@ -76,5 +101,5 @@ export async function cargarMedidor(formData: FormData) {
     revalidatePath(`/admin/activos/${activo.id}`);
   }
 
-  redirect(`/admin/medidores?aeronaveId=${aeronaveId}`);
+  redirect(`/admin/vuelos?aeronaveId=${aeronaveId}`);
 }

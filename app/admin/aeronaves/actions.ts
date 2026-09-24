@@ -123,18 +123,20 @@ export async function updateAeronave(id: string, formData: FormData) {
 export async function deleteAeronave(id: string) {
   await verificarPermiso("borrar");
 
-  const [activos, mantenimientos, mantenimientosPreventivos, ordenesTrabajo] =
+  const [activos, mantenimientos, mantenimientosPreventivos, ordenesTrabajo, vuelos] =
     await Promise.all([
       prisma.activo.count({ where: { aeronaveId: id } }),
       prisma.registroMantenimiento.count({ where: { aeronaveId: id } }),
       prisma.activoMantenimientoPreventivo.count({ where: { aeronaveId: id } }),
       prisma.ordenTrabajo.count({ where: { aeronaveId: id } }),
+      prisma.registroVuelo.count({ where: { aeronaveId: id } }),
     ]);
   verificarSinReferencias([
     { nombre: "Activos", cantidad: activos },
     { nombre: "Registros de mantenimiento", cantidad: mantenimientos },
     { nombre: "Mantenimientos preventivos relacionados", cantidad: mantenimientosPreventivos },
     { nombre: "Órdenes de Trabajo", cantidad: ordenesTrabajo },
+    { nombre: "Registros de vuelo", cantidad: vuelos },
   ]);
 
   const aeronave = await prisma.aeronave.delete({ where: { id } });

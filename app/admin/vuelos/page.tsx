@@ -1,16 +1,22 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { cargarMedidor } from "./actions";
+import { cargarVuelo } from "./actions";
 
-export default async function CargaMedidoresPage({
+export default async function CargaVuelosPage({
   searchParams,
-}: PageProps<"/admin/medidores">) {
+}: PageProps<"/admin/vuelos">) {
   const { aeronaveId: aeronaveIdParam } = await searchParams;
   const aeronaveId = Array.isArray(aeronaveIdParam) ? aeronaveIdParam[0] : aeronaveIdParam;
 
-  const aeronaves = await prisma.aeronave.findMany({
-    orderBy: { matricula: "asc" },
-  });
+  const [aeronaves, pilotos] = await Promise.all([
+    prisma.aeronave.findMany({
+      orderBy: { matricula: "asc" },
+    }),
+    prisma.personal.findMany({
+      where: { rol: "PILOTO" },
+      orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
+    }),
+  ]);
 
   const aeronave = aeronaveId
     ? await prisma.aeronave.findUnique({
@@ -23,10 +29,10 @@ export default async function CargaMedidoresPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-gris-900">Carga de Medidores</h1>
+      <h1 className="text-2xl font-semibold text-gris-900">Carga de Vuelos</h1>
       <p className="mt-1 text-sm text-gris-500">
-        Sumá las horas de vuelo y los ciclos realizados a una aeronave y a todos
-        los activos montados en ella.
+        Registrá los datos del vuelo y sumá las horas y los ciclos realizados a
+        una aeronave y a todos los activos montados en ella.
       </p>
 
       <div className="mt-8 max-w-xl">
@@ -107,16 +113,117 @@ export default async function CargaMedidoresPage({
                 Cargar vuelo
               </h2>
               <p className="mt-1 text-xs text-gris-500">
-                Lo que cargues acá se suma al total actual de la aeronave y de
-                cada uno de sus {aeronave.activos.length} activo(s) montado(s),
-                tanto en TSN como en TSO.
+                Las horas y ciclos que cargues acá se suman al total actual de
+                la aeronave y de cada uno de sus {aeronave.activos.length}{" "}
+                activo(s) montado(s), tanto en TSN como en TSO.
               </p>
-              <form action={cargarMedidor} className="mt-4 space-y-3">
+              <form action={cargarVuelo} className="mt-4 space-y-3">
                 <input type="hidden" name="aeronaveId" value={aeronave.id} />
-                <div className="grid grid-cols-2 gap-3">
+
+                <div>
+                  <label className="block text-xs font-medium text-gris-700">
+                    Piloto
+                  </label>
+                  <select
+                    name="pilotoId"
+                    defaultValue=""
+                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                  >
+                    <option value="">Sin especificar</option>
+                    {pilotos.map((piloto) => (
+                      <option key={piloto.id} value={piloto.id}>
+                        {piloto.apellido}, {piloto.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 border-t border-gris-100 pt-3">
                   <div>
                     <label className="block text-xs font-medium text-gris-700">
-                      Horas de vuelo
+                      País origen
+                    </label>
+                    <input
+                      name="paisOrigen"
+                      className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gris-700">
+                      Aeropuerto origen
+                    </label>
+                    <input
+                      name="aeropuertoOrigen"
+                      className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gris-700">
+                      Fecha origen
+                    </label>
+                    <input
+                      name="fechaOrigen"
+                      type="date"
+                      className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gris-700">
+                      Hora origen
+                    </label>
+                    <input
+                      name="horaOrigen"
+                      type="time"
+                      className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 border-t border-gris-100 pt-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gris-700">
+                      País destino
+                    </label>
+                    <input
+                      name="paisDestino"
+                      className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gris-700">
+                      Aeropuerto destino
+                    </label>
+                    <input
+                      name="aeropuertoDestino"
+                      className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gris-700">
+                      Fecha destino
+                    </label>
+                    <input
+                      name="fechaDestino"
+                      type="date"
+                      className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gris-700">
+                      Hora destino
+                    </label>
+                    <input
+                      name="horaDestino"
+                      type="time"
+                      className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 border-t border-gris-100 pt-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gris-700">
+                      Tiempo de vuelo (horas)
                     </label>
                     <input
                       name="horas"
@@ -128,7 +235,7 @@ export default async function CargaMedidoresPage({
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gris-700">
-                      Ciclos realizados
+                      Ciclos
                     </label>
                     <input
                       name="ciclos"
@@ -138,11 +245,23 @@ export default async function CargaMedidoresPage({
                     />
                   </div>
                 </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gris-700">
+                    Observaciones
+                  </label>
+                  <textarea
+                    name="observaciones"
+                    rows={2}
+                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                  />
+                </div>
+
                 <button
                   type="submit"
                   className="w-full rounded-md bg-celeste-700 py-2 text-sm font-medium text-white hover:bg-celeste-800"
                 >
-                  Sumar a la aeronave y sus activos
+                  Registrar vuelo
                 </button>
               </form>
             </div>
