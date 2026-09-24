@@ -77,7 +77,7 @@ export default async function VencimientosMPPage() {
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <Link
-                    href={`/admin/activos/relacionar-mp/${relacion.id}`}
+                    href={`/admin/mantenimiento-preventivo/relacionar-mp/${relacion.id}`}
                     className="font-medium text-celeste-700 hover:underline"
                   >
                     {relacion.mantenimientoPreventivo.codigo}
@@ -112,7 +112,7 @@ export default async function VencimientosMPPage() {
                 <td colSpan={6} className="px-4 py-6 text-center text-gris-500">
                   Todavía no hay activos ni aeronaves relacionados con MP.{" "}
                   <Link
-                    href="/admin/activos/relacionar-mp"
+                    href="/admin/mantenimiento-preventivo/relacionar-mp"
                     className="text-celeste-700 hover:underline"
                   >
                     Relacionar ahora

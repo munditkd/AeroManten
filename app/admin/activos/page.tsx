@@ -53,22 +53,7 @@ export default async function ActivosPage({
         puede estar montado en una aeronave o en depósito como repuesto.
       </p>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[200px_minmax(0,1fr)_320px]">
-        <div className="space-y-3">
-          <Link
-            href="/admin/activos/relacionar-mp"
-            className="block rounded-lg border border-gris-200 bg-white p-4 text-sm font-medium text-celeste-700 hover:bg-celeste-50"
-          >
-            Relacionar Activos/Aeronaves con MP
-          </Link>
-          <Link
-            href="/admin/activos/vencimientos-mp"
-            className="block rounded-lg border border-gris-200 bg-white p-4 text-sm font-medium text-celeste-700 hover:bg-celeste-50"
-          >
-            Listado de MP con Vencimiento
-          </Link>
-        </div>
-
+      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div>
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <Link href="/admin/activos" className={pill(!vista)}>

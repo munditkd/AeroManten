@@ -16,6 +16,21 @@ export default async function MantenimientoPreventivoPage() {
 
       <div className="mt-8 grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
+          <div className="mb-4 flex flex-wrap gap-2">
+            <Link
+              href="/admin/mantenimiento-preventivo/relacionar-mp"
+              className="rounded-lg border border-gris-200 bg-white px-4 py-2 text-sm font-medium text-celeste-700 hover:bg-celeste-50"
+            >
+              Relacionar Activos/Aeronaves con MP
+            </Link>
+            <Link
+              href="/admin/mantenimiento-preventivo/vencimientos-mp"
+              className="rounded-lg border border-gris-200 bg-white px-4 py-2 text-sm font-medium text-celeste-700 hover:bg-celeste-50"
+            >
+              Listado de MP con Vencimiento
+            </Link>
+          </div>
+
           <div className="overflow-x-auto rounded-lg border border-gris-200 bg-white">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-gris-200 bg-gris-50 text-xs uppercase text-gris-500">

@@ -50,7 +50,7 @@ export default async function RelacionMPDetailPage({
   return (
     <div>
       <Link
-        href="/admin/activos/relacionar-mp"
+        href="/admin/mantenimiento-preventivo/relacionar-mp"
         className="text-sm text-gris-500 hover:text-celeste-700"
       >
         ← Relacionar Activos/Aeronaves con MP

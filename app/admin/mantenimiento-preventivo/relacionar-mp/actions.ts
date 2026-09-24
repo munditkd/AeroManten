@@ -78,8 +78,8 @@ export async function createRelaciones(formData: FormData) {
     );
   }
 
-  revalidatePath("/admin/activos/relacionar-mp");
-  revalidatePath("/admin/activos/vencimientos-mp");
+  revalidatePath("/admin/mantenimiento-preventivo/relacionar-mp");
+  revalidatePath("/admin/mantenimiento-preventivo/vencimientos-mp");
 }
 
 export async function deleteRelacion(id: string) {
@@ -91,9 +91,9 @@ export async function deleteRelacion(id: string) {
   verificarSinReferencias([{ nombre: "Realizaciones registradas", cantidad: realizaciones }]);
 
   await prisma.activoMantenimientoPreventivo.delete({ where: { id } });
-  revalidatePath("/admin/activos/relacionar-mp");
-  revalidatePath("/admin/activos/vencimientos-mp");
-  redirect("/admin/activos/relacionar-mp");
+  revalidatePath("/admin/mantenimiento-preventivo/relacionar-mp");
+  revalidatePath("/admin/mantenimiento-preventivo/vencimientos-mp");
+  redirect("/admin/mantenimiento-preventivo/relacionar-mp");
 }
 
 export async function createRealizacion(relacionId: string, formData: FormData) {
@@ -112,9 +112,9 @@ export async function createRealizacion(relacionId: string, formData: FormData) 
     },
   });
 
-  revalidatePath(`/admin/activos/relacionar-mp/${relacionId}`);
-  revalidatePath("/admin/activos/relacionar-mp");
-  revalidatePath("/admin/activos/vencimientos-mp");
+  revalidatePath(`/admin/mantenimiento-preventivo/relacionar-mp/${relacionId}`);
+  revalidatePath("/admin/mantenimiento-preventivo/relacionar-mp");
+  revalidatePath("/admin/mantenimiento-preventivo/vencimientos-mp");
 }
 
 export async function deleteRealizacion(id: string) {
@@ -123,8 +123,8 @@ export async function deleteRealizacion(id: string) {
   const realizado = await prisma.mantenimientoPreventivoRealizado.delete({
     where: { id },
   });
-  revalidatePath(`/admin/activos/relacionar-mp/${realizado.relacionId}`);
-  revalidatePath("/admin/activos/vencimientos-mp");
+  revalidatePath(`/admin/mantenimiento-preventivo/relacionar-mp/${realizado.relacionId}`);
+  revalidatePath("/admin/mantenimiento-preventivo/vencimientos-mp");
 }
 
 export async function generarOTDesdeMP(relacionId: string) {

@@ -288,7 +288,7 @@ export default async function ActivoDetailPage({
                 Mantenimientos Preventivos
               </h2>
               <Link
-                href="/admin/activos/relacionar-mp"
+                href="/admin/mantenimiento-preventivo/relacionar-mp"
                 className="text-xs font-medium text-celeste-700 hover:underline"
               >
                 Relacionar más MP
@@ -298,7 +298,7 @@ export default async function ActivoDetailPage({
               {mpConVencimiento.map(({ relacion, venc }) => (
                 <li key={relacion.id} className="py-3">
                   <Link
-                    href={`/admin/activos/relacionar-mp/${relacion.id}`}
+                    href={`/admin/mantenimiento-preventivo/relacionar-mp/${relacion.id}`}
                     className="font-medium text-celeste-700 hover:underline"
                   >
                     {relacion.mantenimientoPreventivo.codigo}

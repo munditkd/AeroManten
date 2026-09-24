@@ -78,7 +78,7 @@ export default async function RelacionarActivosMPPage() {
                     <tr key={relacion.id} className="hover:bg-gris-50">
                       <td className="px-4 py-3 whitespace-nowrap">
                         <Link
-                          href={`/admin/activos/relacionar-mp/${relacion.id}`}
+                          href={`/admin/mantenimiento-preventivo/relacionar-mp/${relacion.id}`}
                           className="font-medium text-celeste-700 hover:underline"
                         >
                           {relacion.aeronave
