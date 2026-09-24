@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   PRIORIDADES_OT,
@@ -7,18 +8,49 @@ import {
 } from "@/lib/ordenes-trabajo";
 import { obtenerEstados, claseBadgeEstado } from "@/lib/estados";
 import { createOrdenTrabajo } from "./actions";
+import { AeronaveFilter } from "./aeronave-filter";
 
-export default async function OrdenesTrabajoPage() {
+export default async function OrdenesTrabajoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ vista?: string; aeronaveId?: string }>;
+}) {
+  const { vista, aeronaveId } = await searchParams;
+
+  let where: Prisma.OrdenTrabajoWhereInput = { estado: { rstatus: "ABIERTA" } };
+  if (vista === "aeronave") {
+    where = {
+      estado: { rstatus: "ABIERTA" },
+      ...(aeronaveId
+        ? { OR: [{ aeronaveId }, { activo: { aeronaveId } }] }
+        : { OR: [{ aeronaveId: { not: null } }, { activo: { aeronaveId: { not: null } } }] }),
+    };
+  } else if (vista === "libres") {
+    where = {
+      estado: { rstatus: "ABIERTA" },
+      aeronaveId: null,
+      OR: [{ activoId: null }, { activo: { aeronaveId: null } }],
+    };
+  }
+
   const [ordenes, aeronaves, personal, mantenimientosPreventivos, estados] = await Promise.all([
     prisma.ordenTrabajo.findMany({
+      where,
       orderBy: { fecha: "desc" },
-      include: { aeronave: true, estado: true },
+      include: { aeronave: true, activo: { include: { aeronave: true } }, estado: true },
     }),
     prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
     prisma.personal.findMany({ orderBy: [{ apellido: "asc" }, { nombre: "asc" }] }),
     prisma.mantenimientoPreventivo.findMany({ orderBy: { codigo: "asc" } }),
     obtenerEstados("OrdenTrabajo"),
   ]);
+
+  const pill = (active: boolean) =>
+    `rounded-md border px-3 py-1.5 text-sm font-medium ${
+      active
+        ? "border-celeste-700 bg-celeste-700 text-white"
+        : "border-gris-300 text-gris-700 hover:bg-gris-50"
+    }`;
 
   return (
     <div>
@@ -28,7 +60,22 @@ export default async function OrdenesTrabajoPage() {
       </p>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="overflow-x-auto rounded-lg border border-gris-200 bg-white">
+        <div>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <Link href="/admin/ordenes-trabajo" className={pill(!vista)}>
+              Todas
+            </Link>
+            <AeronaveFilter
+              aeronaves={aeronaves}
+              selectedAeronaveId={vista === "aeronave" ? aeronaveId : undefined}
+              active={vista === "aeronave"}
+            />
+            <Link href="/admin/ordenes-trabajo?vista=libres" className={pill(vista === "libres")}>
+              Activos Libres
+            </Link>
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-gris-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-gris-200 bg-gris-50 text-xs uppercase text-gris-500">
               <tr>
@@ -53,7 +100,7 @@ export default async function OrdenesTrabajoPage() {
                   </td>
                   <td className="px-4 py-3 text-gris-600">{ot.descripcion}</td>
                   <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
-                    {ot.aeronave?.matricula ?? "—"}
+                    {ot.aeronave?.matricula ?? ot.activo?.aeronave?.matricula ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
                     {ot.fecha.toLocaleDateString("es-AR")}
@@ -77,12 +124,17 @@ export default async function OrdenesTrabajoPage() {
               {ordenes.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-6 text-center text-gris-500">
-                    Todavía no hay órdenes de trabajo cargadas.
+                    {vista === "libres"
+                      ? "No hay órdenes de trabajo abiertas sin aeronave asociada."
+                      : vista === "aeronave"
+                        ? "No hay órdenes de trabajo abiertas con ese filtro."
+                        : "No hay órdenes de trabajo abiertas."}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         <div>
