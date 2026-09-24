@@ -18,15 +18,30 @@ const ESTADOS = [
   { tabla: "OrdenTrabajo", propiedad: "estado", status: "Terminada F/S", rstatus: "CERRADA" },
   { tabla: "OrdenTrabajo", propiedad: "estado", status: "Cancelada", rstatus: "CERRADA" },
 
-  // Activos — rstatus: OPERATIVO | NO_OPERATIVO | BAJA
+  // Activos — genéricos — rstatus: OPERATIVO | NO_OPERATIVO | BAJA
   { tabla: "Activo", propiedad: "estado", status: "Operativo", rstatus: "OPERATIVO" },
   { tabla: "Activo", propiedad: "estado", status: "No operativo", rstatus: "NO_OPERATIVO" },
   { tabla: "Activo", propiedad: "estado", status: "Baja", rstatus: "BAJA" },
 
-  // Aeronaves — rstatus: OPERATIVO | NO_OPERATIVO | BAJA
+  // Activos — específicos
+  { tabla: "Activo", propiedad: "estado", status: "En Servicio", rstatus: "OPERATIVO" },
+  { tabla: "Activo", propiedad: "estado", status: "Instalado", rstatus: "OPERATIVO" },
+  { tabla: "Activo", propiedad: "estado", status: "En Reparación", rstatus: "NO_OPERATIVO" },
+  { tabla: "Activo", propiedad: "estado", status: "Fuera de Servicio", rstatus: "NO_OPERATIVO" },
+  { tabla: "Activo", propiedad: "estado", status: "Retirado", rstatus: "BAJA" },
+
+  // Aeronaves — genéricos — rstatus: OPERATIVO | NO_OPERATIVO | BAJA
   { tabla: "Aeronave", propiedad: "estado", status: "Operativo", rstatus: "OPERATIVO" },
   { tabla: "Aeronave", propiedad: "estado", status: "No operativo", rstatus: "NO_OPERATIVO" },
   { tabla: "Aeronave", propiedad: "estado", status: "Baja", rstatus: "BAJA" },
+
+  // Aeronaves — específicos. "En Servicio" = disponible; "En Operación" = en
+  // vuelo, por despegar o en proceso de operación. Ambos son OPERATIVO.
+  { tabla: "Aeronave", propiedad: "estado", status: "En Servicio", rstatus: "OPERATIVO" },
+  { tabla: "Aeronave", propiedad: "estado", status: "En Operación", rstatus: "OPERATIVO" },
+  { tabla: "Aeronave", propiedad: "estado", status: "En Reparación", rstatus: "NO_OPERATIVO" },
+  { tabla: "Aeronave", propiedad: "estado", status: "Fuera de Servicio", rstatus: "NO_OPERATIVO" },
+  { tabla: "Aeronave", propiedad: "estado", status: "Retirada", rstatus: "BAJA" },
 ];
 
 async function main() {
