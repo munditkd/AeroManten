@@ -137,10 +137,13 @@ model Aeronave {
   mesesTSN         Int?
   mesesTSO         Int?
   propietarioId    String
+  // Null = todavía sin clasificar. Se completa a mano por ahora.
+  estadoId         String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   propietario               Propietario                     @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
+  estado                    Estado?                         @relation(fields: [estadoId], references: [id])
   activos                   Activo[]
   mantenimientos            RegistroMantenimiento[]
   mantenimientosPreventivos ActivoMantenimientoPreventivo[]
@@ -165,10 +168,13 @@ model Activo {
   mesesTSO         Int?
   // Null = en depósito / como repuesto, sin montar en ninguna aeronave.
   aeronaveId       String?
+  // Null = todavía sin clasificar. Se completa a mano por ahora.
+  estadoId         String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   aeronave                  Aeronave?                       @relation(fields: [aeronaveId], references: [id], onDelete: SetNull)
+  estado                    Estado?                         @relation(fields: [estadoId], references: [id])
   mantenimientos            RegistroMantenimiento[]
   mantenimientosPreventivos ActivoMantenimientoPreventivo[]
   ordenesTrabajo            OrdenTrabajo[]
@@ -299,16 +305,30 @@ model Grupo {
   @@map("grupos")
 }
 
-enum EstadoOT {
-  PENDIENTE
-  EN_EJECUCION
-  DETENIDA
-  EN_ESPERA
-  EN_REVISION
-  APROBADA
-  TERMINADA_E_S
-  TERMINADA_F_S
-  CANCELADA
+// Tabla auxiliar genérica de estados, reusable por cualquier entidad. "tabla"
+// + "propiedad" identifican a qué campo de qué entidad aplica cada fila
+// (ej. tabla="OrdenTrabajo", propiedad="estado"), "status" es la etiqueta
+// visible, y "rstatus" es la categoría fija de la que depende la lógica del
+// sistema sin importar cómo se llame o traduzca "status" (para OT:
+// ABIERTA/CERRADA; para Activo/Aeronave: OPERATIVO/NO_OPERATIVO/BAJA).
+// "noUsar" saca una fila de las listas desplegables sin borrar el historial
+// que ya la usa.
+model Estado {
+  id        String   @id @default(cuid())
+  tabla     String
+  propiedad String
+  status    String
+  rstatus   String
+  noUsar    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ordenesTrabajo OrdenTrabajo[]
+  activos        Activo[]
+  aeronaves      Aeronave[]
+
+  @@unique([tabla, propiedad, status])
+  @@map("estados")
 }
 
 enum PrioridadOT {
@@ -331,7 +351,7 @@ model OrdenTrabajo {
   clase        String?
   categoria    String?
   fecha        DateTime
-  estado       EstadoOT @default(PENDIENTE)
+  estadoId     String
   departamento String?
 
   // Null = OT no ligada a una aeronave/activo puntual (ej. tarea de taller).
@@ -360,6 +380,7 @@ model OrdenTrabajo {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  estado                  Estado                   @relation(fields: [estadoId], references: [id])
   aeronave                Aeronave?                @relation(fields: [aeronaveId], references: [id], onDelete: SetNull)
   activo                  Activo?                  @relation(fields: [activoId], references: [id], onDelete: SetNull)
   mantenimientoPreventivo MantenimientoPreventivo? @relation(fields: [mantenimientoPreventivoId], references: [id], onDelete: SetNull)

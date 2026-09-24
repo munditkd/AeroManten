@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { obtenerEstados, claseBadgeEstado } from "@/lib/estados";
 import { createAeronave } from "./actions";
 
 export default async function AeronavesPage() {
-  const [aeronaves, propietarios] = await Promise.all([
+  const [aeronaves, propietarios, estados] = await Promise.all([
     prisma.aeronave.findMany({
       orderBy: { matricula: "asc" },
-      include: { propietario: true, _count: { select: { activos: true } } },
+      include: { propietario: true, estado: true, _count: { select: { activos: true } } },
     }),
     prisma.propietario.findMany({ orderBy: { nombre: "asc" } }),
+    obtenerEstados("Aeronave"),
   ]);
 
   return (
@@ -25,6 +27,7 @@ export default async function AeronavesPage() {
               <thead className="border-b border-gris-200 bg-gris-50 text-xs uppercase text-gris-500">
                 <tr>
                   <th className="px-4 py-3">Matrícula</th>
+                  <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3">Fabricante / N° de Parte</th>
                   <th className="px-4 py-3">N° de serie</th>
                   <th className="px-4 py-3">Fabricación</th>
@@ -45,6 +48,17 @@ export default async function AeronavesPage() {
                       >
                         {aeronave.matricula}
                       </Link>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {aeronave.estado ? (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${claseBadgeEstado(aeronave.estado.rstatus)}`}
+                        >
+                          {aeronave.estado.status}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
                       {[aeronave.marca, aeronave.modelo].filter(Boolean).join(" ") ||
@@ -83,7 +97,7 @@ export default async function AeronavesPage() {
                 {aeronaves.length === 0 && (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={10}
                       className="px-4 py-6 text-center text-gris-500"
                     >
                       Todavía no hay aeronaves cargadas.
@@ -143,6 +157,23 @@ export default async function AeronavesPage() {
                     placeholder="LV-ABC"
                     className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm uppercase focus:border-celeste-600 focus:outline-none"
                   />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gris-700">
+                    Estado
+                  </label>
+                  <select
+                    name="estadoId"
+                    defaultValue=""
+                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                  >
+                    <option value="">Sin clasificar</option>
+                    {estados.map((estado) => (
+                      <option key={estado.id} value={estado.id}>
+                        {estado.status}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>

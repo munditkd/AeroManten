@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { verificarPermiso } from "@/lib/permisos";
 import { verificarSinReferencias } from "@/lib/eliminar-guard";
 import { crearOrdenTrabajoConCodigo } from "@/lib/ordenes-trabajo";
+import { obtenerEstadoPorStatus } from "@/lib/estados";
 import { calcularVencimiento, formatFactor } from "@/lib/mantenimiento-preventivo";
 
 function str(formData: FormData, key: string): string | undefined {
@@ -167,10 +168,14 @@ export async function generarOTDesdeMP(relacionId: string) {
       ? venc.factores.map((factor) => `${factor.tipo}: ${formatFactor(factor)}`).join(" · ")
       : undefined;
 
+  const pendiente = await obtenerEstadoPorStatus("OrdenTrabajo", "Pendiente");
+  if (!pendiente) throw new Error("No hay estados cargados para Órdenes de Trabajo");
+
   const ot = await crearOrdenTrabajoConCodigo({
     descripcion: `${relacion.mantenimientoPreventivo.descripcion} — generada desde MP ${relacion.mantenimientoPreventivo.codigo} (${destino})`,
     tipo: "Preventivo",
     fecha: new Date(),
+    estadoId: pendiente.id,
     aeronaveId: esAeronave ? relacion.aeronaveId : (relacion.activo?.aeronaveId ?? null),
     activoId: relacion.activoId,
     mantenimientoPreventivoId: relacion.mantenimientoPreventivoId,

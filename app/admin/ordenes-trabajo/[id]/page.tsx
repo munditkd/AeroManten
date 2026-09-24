@@ -2,13 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import {
-  ESTADOS_OT,
-  ESTADO_OT_LABEL,
-  ESTADO_OT_BADGE_CLASS,
   PRIORIDADES_OT,
   PRIORIDAD_OT_LABEL,
   PRIORIDAD_OT_BADGE_CLASS,
 } from "@/lib/ordenes-trabajo";
+import { obtenerEstados, claseBadgeEstado } from "@/lib/estados";
 import {
   updateOrdenTrabajo,
   deleteOrdenTrabajo,
@@ -27,18 +25,20 @@ export default async function OrdenTrabajoDetailPage({
 }) {
   const { id } = await params;
 
-  const [ot, aeronaves, activos, personal, mantenimientosPreventivos] = await Promise.all([
+  const [ot, aeronaves, activos, personal, mantenimientosPreventivos, estados] = await Promise.all([
     prisma.ordenTrabajo.findUnique({
       where: { id },
       include: {
         manoDeObra: { orderBy: { createdAt: "desc" }, include: { personal: true } },
         originador: true,
+        estado: true,
       },
     }),
     prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
     prisma.activo.findMany({ orderBy: { tipo: "asc" }, include: { aeronave: true } }),
     prisma.personal.findMany({ orderBy: [{ apellido: "asc" }, { nombre: "asc" }] }),
     prisma.mantenimientoPreventivo.findMany({ orderBy: { codigo: "asc" } }),
+    obtenerEstados("OrdenTrabajo"),
   ]);
 
   if (!ot) notFound();
@@ -56,9 +56,9 @@ export default async function OrdenTrabajoDetailPage({
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold text-gris-900">{ot.codigo}</h1>
         <span
-          className={`rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_OT_BADGE_CLASS[ot.estado]}`}
+          className={`rounded-full px-2 py-0.5 text-xs font-medium ${claseBadgeEstado(ot.estado.rstatus)}`}
         >
-          {ESTADO_OT_LABEL[ot.estado]}
+          {ot.estado.status}
         </span>
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${PRIORIDAD_OT_BADGE_CLASS[ot.prioridad]}`}
@@ -137,13 +137,13 @@ export default async function OrdenTrabajoDetailPage({
               <div>
                 <label className="block text-xs font-medium text-gris-700">Estado</label>
                 <select
-                  name="estado"
-                  defaultValue={ot.estado}
+                  name="estadoId"
+                  defaultValue={ot.estadoId}
                   className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
                 >
-                  {ESTADOS_OT.map((estado) => (
-                    <option key={estado} value={estado}>
-                      {ESTADO_OT_LABEL[estado]}
+                  {estados.map((estado) => (
+                    <option key={estado.id} value={estado.id}>
+                      {estado.status}
                     </option>
                   ))}
                 </select>

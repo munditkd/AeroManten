@@ -26,6 +26,15 @@ function date(formData: FormData, key: string): Date | undefined {
   return value ? new Date(value) : undefined;
 }
 
+// A diferencia de `str`, acá un valor vacío significa "sin estado" (null)
+// en vez de "no tocar el campo".
+function optionalRelationId(formData: FormData, key: string): string | null {
+  const value = formData.get(key);
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
+
 function aeronaveData(formData: FormData) {
   return {
     marca: str(formData, "marca"),
@@ -38,6 +47,7 @@ function aeronaveData(formData: FormData) {
     ciclosTSO: num(formData, "ciclosTSO"),
     mesesTSN: num(formData, "mesesTSN"),
     mesesTSO: num(formData, "mesesTSO"),
+    estadoId: optionalRelationId(formData, "estadoId"),
   };
 }
 

@@ -133,6 +133,11 @@ export async function SiteHeader() {
                     Usuarios
                   </Link>
                 </li>
+                <li>
+                  <Link href="/admin/estados" className="hover:text-celeste-700">
+                    Estados
+                  </Link>
+                </li>
               </>
             )}
           </ul>

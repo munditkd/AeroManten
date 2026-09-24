@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { obtenerEstados, claseBadgeEstado } from "@/lib/estados";
 import { createActivo } from "./actions";
 import { MontadosFilter } from "./montados-filter";
 
@@ -27,13 +28,14 @@ export default async function ActivosPage({
     where = aeronaveId ? { aeronaveId } : { aeronaveId: { not: null } };
   }
 
-  const [activos, aeronaves] = await Promise.all([
+  const [activos, aeronaves, estados] = await Promise.all([
     prisma.activo.findMany({
       where,
       orderBy: [{ aeronave: { matricula: "asc" } }, { tipo: "asc" }],
-      include: { aeronave: true },
+      include: { aeronave: true, estado: true },
     }),
     prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
+    obtenerEstados("Activo"),
   ]);
 
   const pill = (active: boolean) =>
@@ -88,6 +90,7 @@ export default async function ActivosPage({
                 <tr>
                   <th className="px-4 py-3">Código</th>
                   <th className="px-4 py-3">Tipo</th>
+                  <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3">Fabricante / N° de Parte</th>
                   <th className="px-4 py-3">N° de serie</th>
                   <th className="px-4 py-3">Fabricación</th>
@@ -110,6 +113,17 @@ export default async function ActivosPage({
                       >
                         {activo.tipo}
                       </Link>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {activo.estado ? (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${claseBadgeEstado(activo.estado.rstatus)}`}
+                        >
+                          {activo.estado.status}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
                       {[activo.marca, activo.modelo].filter(Boolean).join(" ") ||
@@ -151,7 +165,7 @@ export default async function ActivosPage({
                 {activos.length === 0 && (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={10}
                       className="px-4 py-6 text-center text-gris-500"
                     >
                       {vista === "deposito"
@@ -192,6 +206,23 @@ export default async function ActivosPage({
                   <p className="mt-1 text-xs text-gris-400">
                     Dejalo vacío si el componente está en depósito como repuesto.
                   </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gris-700">
+                    Estado
+                  </label>
+                  <select
+                    name="estadoId"
+                    defaultValue=""
+                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                  >
+                    <option value="">Sin clasificar</option>
+                    {estados.map((estado) => (
+                      <option key={estado.id} value={estado.id}>
+                        {estado.status}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gris-700">

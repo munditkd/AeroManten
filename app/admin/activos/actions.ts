@@ -46,6 +46,7 @@ function activoData(formData: FormData) {
     ciclosTSO: num(formData, "ciclosTSO"),
     mesesTSN: num(formData, "mesesTSN"),
     mesesTSO: num(formData, "mesesTSO"),
+    estadoId: optionalRelationId(formData, "estadoId"),
   };
 }
 

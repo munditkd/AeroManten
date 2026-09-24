@@ -1,24 +1,23 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import {
-  ESTADOS_OT,
-  ESTADO_OT_LABEL,
-  ESTADO_OT_BADGE_CLASS,
   PRIORIDADES_OT,
   PRIORIDAD_OT_LABEL,
   PRIORIDAD_OT_BADGE_CLASS,
 } from "@/lib/ordenes-trabajo";
+import { obtenerEstados, claseBadgeEstado } from "@/lib/estados";
 import { createOrdenTrabajo } from "./actions";
 
 export default async function OrdenesTrabajoPage() {
-  const [ordenes, aeronaves, personal, mantenimientosPreventivos] = await Promise.all([
+  const [ordenes, aeronaves, personal, mantenimientosPreventivos, estados] = await Promise.all([
     prisma.ordenTrabajo.findMany({
       orderBy: { fecha: "desc" },
-      include: { aeronave: true },
+      include: { aeronave: true, estado: true },
     }),
     prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
     prisma.personal.findMany({ orderBy: [{ apellido: "asc" }, { nombre: "asc" }] }),
     prisma.mantenimientoPreventivo.findMany({ orderBy: { codigo: "asc" } }),
+    obtenerEstados("OrdenTrabajo"),
   ]);
 
   return (
@@ -61,9 +60,9 @@ export default async function OrdenesTrabajoPage() {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_OT_BADGE_CLASS[ot.estado]}`}
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${claseBadgeEstado(ot.estado.rstatus)}`}
                     >
-                      {ESTADO_OT_LABEL[ot.estado]}
+                      {ot.estado.status}
                     </span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
@@ -140,13 +139,13 @@ export default async function OrdenesTrabajoPage() {
                 <div>
                   <label className="block text-xs font-medium text-gris-700">Estado</label>
                   <select
-                    name="estado"
-                    defaultValue="PENDIENTE"
+                    name="estadoId"
+                    defaultValue={estados.find((e) => e.status === "Pendiente")?.id ?? ""}
                     className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
                   >
-                    {ESTADOS_OT.map((estado) => (
-                      <option key={estado} value={estado}>
-                        {ESTADO_OT_LABEL[estado]}
+                    {estados.map((estado) => (
+                      <option key={estado.id} value={estado.id}>
+                        {estado.status}
                       </option>
                     ))}
                   </select>

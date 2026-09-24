@@ -6,7 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { verificarPermiso } from "@/lib/permisos";
 import { verificarSinReferencias } from "@/lib/eliminar-guard";
 import { crearOrdenTrabajoConCodigo, usuarioActualParaOT } from "@/lib/ordenes-trabajo";
-import { EstadoOT, PrioridadOT } from "@prisma/client";
+import { obtenerEstadoPorStatus } from "@/lib/estados";
+import { PrioridadOT } from "@prisma/client";
 
 function str(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -62,16 +63,22 @@ export async function createOrdenTrabajo(formData: FormData) {
 
   const descripcion = str(formData, "descripcion");
   const fecha = date(formData, "fecha");
-  const estado = str(formData, "estado") as EstadoOT | undefined;
   const prioridad = str(formData, "prioridad") as PrioridadOT | undefined;
   if (!descripcion || !fecha) {
     throw new Error("Descripción y fecha son obligatorias");
   }
 
+  let estadoId = str(formData, "estadoId");
+  if (!estadoId) {
+    const pendiente = await obtenerEstadoPorStatus("OrdenTrabajo", "Pendiente");
+    if (!pendiente) throw new Error("No hay estados cargados para Órdenes de Trabajo");
+    estadoId = pendiente.id;
+  }
+
   await crearOrdenTrabajoConCodigo({
     descripcion,
     fecha,
-    estado: estado && Object.values(EstadoOT).includes(estado) ? estado : undefined,
+    estadoId,
     prioridad:
       prioridad && Object.values(PrioridadOT).includes(prioridad) ? prioridad : undefined,
     ...ordenTrabajoData(formData),
@@ -85,10 +92,10 @@ export async function updateOrdenTrabajo(id: string, formData: FormData) {
 
   const descripcion = str(formData, "descripcion");
   const fecha = date(formData, "fecha");
-  const estado = str(formData, "estado") as EstadoOT | undefined;
+  const estadoId = str(formData, "estadoId");
   const prioridad = str(formData, "prioridad") as PrioridadOT | undefined;
-  if (!descripcion || !fecha) {
-    throw new Error("Descripción y fecha son obligatorias");
+  if (!descripcion || !fecha || !estadoId) {
+    throw new Error("Descripción, fecha y estado son obligatorios");
   }
 
   const usuario = await usuarioActualParaOT();
@@ -98,7 +105,7 @@ export async function updateOrdenTrabajo(id: string, formData: FormData) {
     data: {
       descripcion,
       fecha,
-      estado: estado && Object.values(EstadoOT).includes(estado) ? estado : undefined,
+      estadoId,
       prioridad:
         prioridad && Object.values(PrioridadOT).includes(prioridad) ? prioridad : undefined,
       actualizadoPor: usuario?.name || usuario?.email || null,

@@ -13,6 +13,7 @@ import {
   ESTADO_LABEL,
   ESTADO_BADGE_CLASS,
 } from "@/lib/mantenimiento-preventivo";
+import { obtenerEstados } from "@/lib/estados";
 
 function toDateInput(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
@@ -34,7 +35,7 @@ export default async function AeronaveDetailPage({
 }) {
   const { id } = await params;
 
-  const [aeronave, relacionesMP] = await Promise.all([
+  const [aeronave, relacionesMP, estados] = await Promise.all([
     prisma.aeronave.findUnique({
       where: { id },
       include: {
@@ -53,6 +54,7 @@ export default async function AeronaveDetailPage({
         realizaciones: { orderBy: { fecha: "desc" }, take: 1 },
       },
     }),
+    obtenerEstados("Aeronave"),
   ]);
 
   if (!aeronave) notFound();
@@ -102,6 +104,23 @@ export default async function AeronaveDetailPage({
                 defaultValue={aeronave.matricula}
                 className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm uppercase focus:border-celeste-600 focus:outline-none"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gris-700">
+                Estado
+              </label>
+              <select
+                name="estadoId"
+                defaultValue={aeronave.estadoId ?? ""}
+                className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+              >
+                <option value="">Sin clasificar</option>
+                {estados.map((estado) => (
+                  <option key={estado.id} value={estado.id}>
+                    {estado.status}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

@@ -8,6 +8,7 @@ import {
   ESTADO_LABEL,
   ESTADO_BADGE_CLASS,
 } from "@/lib/mantenimiento-preventivo";
+import { obtenerEstados } from "@/lib/estados";
 
 function toDateInput(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
@@ -29,7 +30,7 @@ export default async function ActivoDetailPage({
 }) {
   const { id } = await params;
 
-  const [activo, aeronaves, relacionesMP] = await Promise.all([
+  const [activo, aeronaves, relacionesMP, estados] = await Promise.all([
     prisma.activo.findUnique({
       where: { id },
       include: {
@@ -45,6 +46,7 @@ export default async function ActivoDetailPage({
         realizaciones: { orderBy: { fecha: "desc" }, take: 1 },
       },
     }),
+    obtenerEstados("Activo"),
   ]);
 
   if (!activo) notFound();
@@ -113,6 +115,23 @@ export default async function ActivoDetailPage({
               <p className="mt-1 text-xs text-gris-400">
                 Cambiá o vaciá este campo para montar/desmontar el componente.
               </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gris-700">
+                Estado
+              </label>
+              <select
+                name="estadoId"
+                defaultValue={activo.estadoId ?? ""}
+                className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+              >
+                <option value="">Sin clasificar</option>
+                {estados.map((estado) => (
+                  <option key={estado.id} value={estado.id}>
+                    {estado.status}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gris-700">
