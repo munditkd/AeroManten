@@ -5,6 +5,7 @@ import { OperacionesMenu } from "../_components/operaciones-menu";
 import { AdministracionMenu } from "../_components/administracion-menu";
 import { UserMenu } from "../_components/user-menu";
 import { BrandStrip } from "../_components/brand-strip";
+import { APP_VERSION } from "@/lib/version";
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const session = await auth();
@@ -26,9 +27,14 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             </nav>
           </div>
 
-          <UserMenu name={session?.user?.name} email={session?.user?.email}>
-            <LogoutButton className="block w-full rounded px-2 py-2 text-left text-sm text-gris-700 hover:bg-gris-50 hover:text-celeste-700" />
-          </UserMenu>
+          <div className="flex items-center gap-3">
+            <span className="rounded-full bg-gris-100 px-2 py-0.5 text-xs font-medium text-gris-500">
+              Beta {APP_VERSION}
+            </span>
+            <UserMenu name={session?.user?.name} email={session?.user?.email}>
+              <LogoutButton className="block w-full rounded px-2 py-2 text-left text-sm text-gris-700 hover:bg-gris-50 hover:text-celeste-700" />
+            </UserMenu>
+          </div>
         </div>
       </header>
 
