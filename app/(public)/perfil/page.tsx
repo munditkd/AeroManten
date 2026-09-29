@@ -1,16 +1,14 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ActionForm } from "@/app/_components/action-form";
-import { actualizarIdleTimeout, cambiarPassword } from "./actions";
-
-const IDLE_TIMEOUT_OPCIONES = [30, 60, 120, 180];
+import { cambiarPassword } from "./actions";
 
 export default async function PerfilPage() {
   const session = await auth();
   const user = session?.user?.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { name: true, username: true, email: true, role: true, idleTimeoutMinutos: true },
+        select: { name: true, username: true, email: true, role: true },
       })
     : null;
 
@@ -38,38 +36,6 @@ export default async function PerfilPage() {
             <dd className="text-gris-900">{user?.role ?? "—"}</dd>
           </div>
         </dl>
-      </div>
-
-      <div className="mt-6 rounded-lg border border-gris-200 bg-white p-6">
-        <h2 className="text-sm font-semibold text-gris-900">Sesión</h2>
-        <p className="mt-1 text-xs text-gris-500">
-          Si no hacés nada en el sistema durante este tiempo, se cierra tu sesión sola. También se
-          cierra si cerrás el navegador.
-        </p>
-        <ActionForm action={actualizarIdleTimeout} className="mt-4 max-w-xs">
-          <label className="block text-xs font-medium text-gris-700">
-            Cerrar sesión por inactividad después de
-          </label>
-          <div className="mt-1 flex gap-2">
-            <select
-              name="idleTimeoutMinutos"
-              defaultValue={user?.idleTimeoutMinutos ?? 60}
-              className="w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-            >
-              {IDLE_TIMEOUT_OPCIONES.map((minutos) => (
-                <option key={minutos} value={minutos}>
-                  {minutos} minutos
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              className="shrink-0 rounded-md bg-celeste-700 px-4 py-2 text-sm font-medium text-white hover:bg-celeste-800"
-            >
-              Guardar
-            </button>
-          </div>
-        </ActionForm>
       </div>
 
       <div className="mt-6 rounded-lg border border-gris-200 bg-white p-6">

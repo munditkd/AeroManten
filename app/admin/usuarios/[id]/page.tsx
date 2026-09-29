@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { updateUsuario } from "../actions";
 
+const IDLE_TIMEOUT_OPCIONES = [30, 60, 120, 180];
+
 export default async function UsuarioDetailPage({
   params,
 }: {
@@ -140,6 +142,27 @@ export default async function UsuarioDetailPage({
             <p className="mt-1 text-xs text-gris-400">
               Se usa para completar solo el "originador" cuando esta cuenta
               crea una Orden de Trabajo.
+            </p>
+          </div>
+
+          <div className="border-t border-gris-100 pt-3">
+            <label className="block text-xs font-medium text-gris-700">
+              Cerrar sesión por inactividad después de
+            </label>
+            <select
+              name="idleTimeoutMinutos"
+              defaultValue={usuario.idleTimeoutMinutos}
+              className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+            >
+              {IDLE_TIMEOUT_OPCIONES.map((minutos) => (
+                <option key={minutos} value={minutos}>
+                  {minutos} minutos
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gris-400">
+              Si esta cuenta no hace nada en el sistema durante este tiempo, se
+              desloguea sola. También se cierra la sesión si cierra el navegador.
             </p>
           </div>
 

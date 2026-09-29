@@ -19,6 +19,13 @@ function optionalRelationId(formData: FormData, key: string): string | null {
   return trimmed === "" ? null : trimmed;
 }
 
+const IDLE_TIMEOUT_OPCIONES = [30, 60, 120, 180];
+
+function idleTimeoutMinutos(formData: FormData): number {
+  const minutos = Number(formData.get("idleTimeoutMinutos"));
+  return IDLE_TIMEOUT_OPCIONES.includes(minutos) ? minutos : 60;
+}
+
 export async function createUsuario(formData: FormData) {
   const username = str(formData, "username");
   const email = str(formData, "email");
@@ -49,6 +56,7 @@ export async function createUsuario(formData: FormData) {
         emailVerified: new Date(),
         grupoId: optionalRelationId(formData, "grupoId"),
         personalId: optionalRelationId(formData, "personalId"),
+        idleTimeoutMinutos: idleTimeoutMinutos(formData),
       },
     });
   } catch (error) {
@@ -87,6 +95,7 @@ export async function updateUsuario(id: string, formData: FormData) {
         role,
         grupoId: optionalRelationId(formData, "grupoId"),
         personalId: optionalRelationId(formData, "personalId"),
+        idleTimeoutMinutos: idleTimeoutMinutos(formData),
         ...(nuevaPassword ? { passwordHash: await bcrypt.hash(nuevaPassword, 12) } : {}),
       },
     });

@@ -11,23 +11,6 @@ function str(formData: FormData, key: string): string | undefined {
   return trimmed === "" ? undefined : trimmed;
 }
 
-const IDLE_TIMEOUT_OPCIONES = [30, 60, 120, 180];
-
-export async function actualizarIdleTimeout(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("No autenticado");
-
-  const minutos = Number(formData.get("idleTimeoutMinutos"));
-  if (!IDLE_TIMEOUT_OPCIONES.includes(minutos)) {
-    throw new Error("Valor de tiempo de inactividad inválido");
-  }
-
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { idleTimeoutMinutos: minutos },
-  });
-}
-
 export async function cambiarPassword(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("No autenticado");

@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { createUsuario } from "./actions";
 
+const IDLE_TIMEOUT_OPCIONES = [30, 60, 120, 180];
+
 export default async function UsuariosPage() {
   const [usuarios, grupos, personalDisponible] = await Promise.all([
     prisma.user.findMany({
@@ -152,6 +154,22 @@ export default async function UsuariosPage() {
                   {personalDisponible.map((persona) => (
                     <option key={persona.id} value={persona.id}>
                       {persona.apellido}, {persona.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gris-700">
+                  Cerrar sesión por inactividad después de
+                </label>
+                <select
+                  name="idleTimeoutMinutos"
+                  defaultValue={60}
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                >
+                  {IDLE_TIMEOUT_OPCIONES.map((minutos) => (
+                    <option key={minutos} value={minutos}>
+                      {minutos} minutos
                     </option>
                   ))}
                 </select>
