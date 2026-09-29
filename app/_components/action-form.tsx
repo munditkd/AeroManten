@@ -6,9 +6,9 @@ import { unstable_rethrow } from "next/navigation";
 type State = { error: string | null };
 
 // Envuelve una server action para que, si lanza un Error (ej. validaciones de
-// negocio como "no se puede cerrar con tareas pendientes"), se muestre como
-// un mensaje prolijo en vez de la pantalla de error de Next.js. Los redirect()
-// / notFound() internos se re-lanzan tal cual para que sigan funcionando.
+// negocio), se muestre como un mensaje prolijo en vez de la pantalla de error
+// de Next.js. Los redirect() / notFound() internos se re-lanzan tal cual para
+// que sigan funcionando.
 export function ActionForm({
   action,
   children,

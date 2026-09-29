@@ -37,6 +37,8 @@ model User {
   personalId    String?   @unique
   emailVerified DateTime?
   image         String?
+  // Minutos de inactividad antes de desloguear solo. Opciones: 30/60/120/180.
+  idleTimeoutMinutos Int @default(60)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

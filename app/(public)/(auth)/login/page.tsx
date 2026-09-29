@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const desconectadoPorInactividad = searchParams.get("motivo") === "inactividad";
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -43,6 +45,12 @@ export default function LoginPage() {
             Ingresá tus credenciales para continuar
           </p>
         </div>
+
+        {desconectadoPorInactividad && (
+          <p className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
+            Se cerró tu sesión por inactividad. Volvé a ingresar.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

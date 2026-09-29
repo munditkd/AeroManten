@@ -14,7 +14,7 @@ import {
   updateTarea,
   deleteTarea,
 } from "../actions";
-import { ActionForm } from "../action-form";
+import { ActionForm } from "@/app/_components/action-form";
 
 function toDateInput(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
