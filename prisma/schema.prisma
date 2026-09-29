@@ -276,10 +276,10 @@ model Personal {
   createdAt                    DateTime    @default(now())
   updatedAt                    DateTime    @updatedAt
 
-  grupo                     Grupo?                   @relation(fields: [grupoId], references: [id], onDelete: SetNull)
-  ordenesTrabajoOriginadas  OrdenTrabajo[]           @relation("OTOriginador")
-  ordenesTrabajoResponsable OrdenTrabajo[]           @relation("OTResponsable")
-  manoDeObra                OrdenTrabajoManoDeObra[]
+  grupo                     Grupo?              @relation(fields: [grupoId], references: [id], onDelete: SetNull)
+  ordenesTrabajoOriginadas  OrdenTrabajo[]      @relation("OTOriginador")
+  ordenesTrabajoResponsable OrdenTrabajo[]      @relation("OTResponsable")
+  tareasOT                  OrdenTrabajoTarea[]
   vuelosComoPiloto          RegistroVuelo[]
   user                      User?
 
@@ -325,9 +325,10 @@ model Estado {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  ordenesTrabajo OrdenTrabajo[]
-  activos        Activo[]
-  aeronaves      Aeronave[]
+  ordenesTrabajo      OrdenTrabajo[]
+  activos             Activo[]
+  aeronaves           Aeronave[]
+  ordenesTrabajoTarea OrdenTrabajoTarea[]
 
   @@unique([tabla, propiedad, status])
   @@map("estados")
@@ -388,27 +389,33 @@ model OrdenTrabajo {
   mantenimientoPreventivo MantenimientoPreventivo? @relation(fields: [mantenimientoPreventivoId], references: [id], onDelete: SetNull)
   originador              Personal?                @relation("OTOriginador", fields: [originadorId], references: [id], onDelete: SetNull)
   responsable             Personal?                @relation("OTResponsable", fields: [responsableId], references: [id], onDelete: SetNull)
-  manoDeObra              OrdenTrabajoManoDeObra[]
+  tareas                  OrdenTrabajoTarea[]
 
   @@map("ordenes_trabajo")
 }
 
-// Carga de mano de obra: varias entradas por OT (una por operario/día/tarea).
-model OrdenTrabajoManoDeObra {
-  id              String    @id @default(cuid())
-  ordenTrabajoId  String
-  personalId      String?
-  fecha           DateTime?
-  horasTrabajadas Float?
-  tareas          String?   @db.Text
-  costo           Float?
-  comentarios     String?   @db.Text
-  createdAt       DateTime  @default(now())
+// Tareas de una OT: cada una es un ítem de trabajo independiente y autónomo
+// (descripción, estado, operario, horas, costo, comentario — todo junto, sin
+// niveles). Una OT no puede cerrarse (pasar a un estado con rstatus CERRADA)
+// si le queda alguna tarea con rstatus ABIERTA (ver updateOrdenTrabajo).
+model OrdenTrabajoTarea {
+  id             String    @id @default(cuid())
+  ordenTrabajoId String
+  descripcion    String    @db.Text
+  estadoId       String
+  personalId     String?
+  fecha          DateTime?
+  horas          Float?
+  costo          Float?
+  comentarios    String?   @db.Text
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   ordenTrabajo OrdenTrabajo @relation(fields: [ordenTrabajoId], references: [id], onDelete: Cascade)
+  estado       Estado       @relation(fields: [estadoId], references: [id])
   personal     Personal?    @relation(fields: [personalId], references: [id], onDelete: SetNull)
 
-  @@map("ordenes_trabajo_mano_obra")
+  @@map("ordenes_trabajo_tareas")
 }
 
 // Bitácora de vuelo. Se carga desde la pantalla "Carga de Vuelos", que

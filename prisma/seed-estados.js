@@ -18,6 +18,12 @@ const ESTADOS = [
   { tabla: "OrdenTrabajo", propiedad: "estado", status: "Terminada F/S", rstatus: "CERRADA" },
   { tabla: "OrdenTrabajo", propiedad: "estado", status: "Cancelada", rstatus: "CERRADA" },
 
+  // Tareas de OT — rstatus: ABIERTA | CERRADA. Una OT no puede cerrarse
+  // mientras tenga alguna tarea en rstatus ABIERTA (Pendiente).
+  { tabla: "OrdenTrabajoTarea", propiedad: "estado", status: "Pendiente", rstatus: "ABIERTA" },
+  { tabla: "OrdenTrabajoTarea", propiedad: "estado", status: "Realizada", rstatus: "CERRADA" },
+  { tabla: "OrdenTrabajoTarea", propiedad: "estado", status: "Cancelada", rstatus: "CERRADA" },
+
   // Activos — genéricos — rstatus: OPERATIVO | NO_OPERATIVO | BAJA
   { tabla: "Activo", propiedad: "estado", status: "Operativo", rstatus: "OPERATIVO" },
   { tabla: "Activo", propiedad: "estado", status: "No operativo", rstatus: "NO_OPERATIVO" },

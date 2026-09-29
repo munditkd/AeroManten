@@ -98,6 +98,18 @@ export async function updateOrdenTrabajo(id: string, formData: FormData) {
     throw new Error("Descripción, fecha y estado son obligatorios");
   }
 
+  const nuevoEstado = await prisma.estado.findUnique({ where: { id: estadoId } });
+  if (nuevoEstado?.rstatus === "CERRADA") {
+    const tareasPendientes = await prisma.ordenTrabajoTarea.count({
+      where: { ordenTrabajoId: id, estado: { rstatus: "ABIERTA" } },
+    });
+    if (tareasPendientes > 0) {
+      throw new Error(
+        `No se puede cerrar la OT: hay ${tareasPendientes} tarea(s) pendiente(s). Marcalas como Realizada o Cancelada antes de cerrar.`
+      );
+    }
+  }
+
   const usuario = await usuarioActualParaOT();
 
   await prisma.ordenTrabajo.update({
@@ -120,33 +132,51 @@ export async function updateOrdenTrabajo(id: string, formData: FormData) {
 export async function deleteOrdenTrabajo(id: string) {
   await verificarPermiso("borrar");
 
-  const manoDeObra = await prisma.ordenTrabajoManoDeObra.count({
+  const tareas = await prisma.ordenTrabajoTarea.count({
     where: { ordenTrabajoId: id },
   });
-  verificarSinReferencias([{ nombre: "Mano de obra cargada", cantidad: manoDeObra }]);
+  verificarSinReferencias([{ nombre: "Tareas cargadas", cantidad: tareas }]);
 
   await prisma.ordenTrabajo.delete({ where: { id } });
   revalidatePath("/admin/ordenes-trabajo");
   redirect("/admin/ordenes-trabajo");
 }
 
-export async function createManoDeObra(ordenTrabajoId: string, formData: FormData) {
+export async function createTarea(ordenTrabajoId: string, formData: FormData) {
   await verificarPermiso("insertar");
 
-  const personalId = optionalRelationId(formData, "personalId");
-  const horasTrabajadas = num(formData, "horasTrabajadas");
-  const tareas = str(formData, "tareas");
-  if (!personalId && !tareas) {
-    throw new Error("Ingresá al menos el operario o la tarea realizada");
+  const descripcion = str(formData, "descripcion");
+  if (!descripcion) {
+    throw new Error("La descripción de la tarea es obligatoria");
   }
 
-  await prisma.ordenTrabajoManoDeObra.create({
+  const pendiente = await obtenerEstadoPorStatus("OrdenTrabajoTarea", "Pendiente");
+  if (!pendiente) throw new Error("No hay estados cargados para Tareas de OT");
+
+  await prisma.ordenTrabajoTarea.create({
+    data: { ordenTrabajoId, descripcion, estadoId: pendiente.id },
+  });
+
+  revalidatePath(`/admin/ordenes-trabajo/${ordenTrabajoId}`);
+}
+
+export async function updateTarea(ordenTrabajoId: string, tareaId: string, formData: FormData) {
+  await verificarPermiso("modificar");
+
+  const descripcion = str(formData, "descripcion");
+  const estadoId = str(formData, "estadoId");
+  if (!descripcion || !estadoId) {
+    throw new Error("Descripción y estado son obligatorios");
+  }
+
+  await prisma.ordenTrabajoTarea.update({
+    where: { id: tareaId },
     data: {
-      ordenTrabajoId,
-      personalId,
+      descripcion,
+      estadoId,
+      personalId: optionalRelationId(formData, "personalId"),
       fecha: date(formData, "fecha") ?? null,
-      horasTrabajadas: horasTrabajadas ?? null,
-      tareas: tareas ?? null,
+      horas: num(formData, "horas") ?? null,
       costo: num(formData, "costo") ?? null,
       comentarios: str(formData, "comentarios") ?? null,
     },
@@ -155,9 +185,9 @@ export async function createManoDeObra(ordenTrabajoId: string, formData: FormDat
   revalidatePath(`/admin/ordenes-trabajo/${ordenTrabajoId}`);
 }
 
-export async function deleteManoDeObra(ordenTrabajoId: string, id: string) {
+export async function deleteTarea(ordenTrabajoId: string, tareaId: string) {
   await verificarPermiso("borrar");
 
-  await prisma.ordenTrabajoManoDeObra.delete({ where: { id } });
+  await prisma.ordenTrabajoTarea.delete({ where: { id: tareaId } });
   revalidatePath(`/admin/ordenes-trabajo/${ordenTrabajoId}`);
 }

@@ -10,9 +10,11 @@ import { obtenerEstados, claseBadgeEstado } from "@/lib/estados";
 import {
   updateOrdenTrabajo,
   deleteOrdenTrabajo,
-  createManoDeObra,
-  deleteManoDeObra,
+  createTarea,
+  updateTarea,
+  deleteTarea,
 } from "../actions";
+import { ActionForm } from "../action-form";
 
 function toDateInput(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
@@ -25,27 +27,32 @@ export default async function OrdenTrabajoDetailPage({
 }) {
   const { id } = await params;
 
-  const [ot, aeronaves, activos, personal, mantenimientosPreventivos, estados] = await Promise.all([
-    prisma.ordenTrabajo.findUnique({
-      where: { id },
-      include: {
-        manoDeObra: { orderBy: { createdAt: "desc" }, include: { personal: true } },
-        originador: true,
-        estado: true,
-      },
-    }),
-    prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
-    prisma.activo.findMany({ orderBy: { tipo: "asc" }, include: { aeronave: true } }),
-    prisma.personal.findMany({ orderBy: [{ apellido: "asc" }, { nombre: "asc" }] }),
-    prisma.mantenimientoPreventivo.findMany({ orderBy: { codigo: "asc" } }),
-    obtenerEstados("OrdenTrabajo"),
-  ]);
+  const [ot, aeronaves, activos, personal, mantenimientosPreventivos, estados, estadosTarea] =
+    await Promise.all([
+      prisma.ordenTrabajo.findUnique({
+        where: { id },
+        include: {
+          tareas: {
+            orderBy: { createdAt: "asc" },
+            include: { estado: true, personal: true },
+          },
+          originador: true,
+          estado: true,
+        },
+      }),
+      prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
+      prisma.activo.findMany({ orderBy: { tipo: "asc" }, include: { aeronave: true } }),
+      prisma.personal.findMany({ orderBy: [{ apellido: "asc" }, { nombre: "asc" }] }),
+      prisma.mantenimientoPreventivo.findMany({ orderBy: { codigo: "asc" } }),
+      obtenerEstados("OrdenTrabajo"),
+      obtenerEstados("OrdenTrabajoTarea"),
+    ]);
 
   if (!ot) notFound();
 
   const updateOrdenTrabajoWithId = updateOrdenTrabajo.bind(null, ot.id);
   const deleteOrdenTrabajoWithId = deleteOrdenTrabajo.bind(null, ot.id);
-  const createManoDeObraWithId = createManoDeObra.bind(null, ot.id);
+  const createTareaWithId = createTarea.bind(null, ot.id);
 
   return (
     <div>
@@ -74,7 +81,7 @@ export default async function OrdenTrabajoDetailPage({
       <div className="mt-8 grid gap-8 lg:grid-cols-2">
         <div className="rounded-lg border border-gris-200 bg-white p-6">
           <h2 className="text-sm font-semibold text-gris-900">Datos de la orden</h2>
-          <form action={updateOrdenTrabajoWithId} className="mt-4 space-y-3">
+          <ActionForm action={updateOrdenTrabajoWithId} className="mt-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gris-700">Código</label>
@@ -359,139 +366,171 @@ export default async function OrdenTrabajoDetailPage({
             >
               Guardar cambios
             </button>
-          </form>
+          </ActionForm>
 
-          <form action={deleteOrdenTrabajoWithId} className="mt-3">
+          <ActionForm action={deleteOrdenTrabajoWithId} className="mt-3">
             <button
               type="submit"
               className="w-full rounded-md border border-red-200 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
             >
               Eliminar orden de trabajo
             </button>
-          </form>
+          </ActionForm>
         </div>
 
         <div className="space-y-6">
           <div className="rounded-lg border border-gris-200 bg-white p-6">
-            <h2 className="text-sm font-semibold text-gris-900">Mano de obra</h2>
-            <ul className="mt-4 divide-y divide-gris-100">
-              {ot.manoDeObra.map((entrada) => (
-                <li key={entrada.id} className="py-3 text-sm">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="font-medium text-gris-900">
-                        {entrada.personal
-                          ? `${entrada.personal.apellido}, ${entrada.personal.nombre}`
-                          : "Sin operario asignado"}
-                        {entrada.horasTrabajadas != null && (
-                          <span className="ml-2 text-xs text-gris-500">
-                            {entrada.horasTrabajadas} hs
-                          </span>
-                        )}
-                      </p>
-                      {entrada.fecha && (
-                        <p className="text-xs text-gris-500">
-                          {entrada.fecha.toLocaleDateString("es-AR")}
-                        </p>
-                      )}
-                      {entrada.tareas && (
-                        <p className="mt-1 text-gris-600">{entrada.tareas}</p>
-                      )}
-                      {entrada.costo != null && (
-                        <p className="text-xs text-gris-500">Costo: {entrada.costo}</p>
-                      )}
-                      {entrada.comentarios && (
-                        <p className="mt-1 text-xs text-gris-500">{entrada.comentarios}</p>
-                      )}
-                    </div>
-                    <form action={deleteManoDeObra.bind(null, ot.id, entrada.id)}>
-                      <button
-                        type="submit"
-                        className="text-xs font-medium text-red-500 hover:underline"
-                      >
-                        Eliminar
-                      </button>
-                    </form>
-                  </div>
-                </li>
-              ))}
-              {ot.manoDeObra.length === 0 && (
-                <li className="py-3 text-sm text-gris-500">
-                  Todavía no hay mano de obra cargada en esta OT.
-                </li>
-              )}
-            </ul>
-          </div>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gris-900">Tareas</h2>
+              <p className="text-xs text-gris-500">
+                Para cerrar la OT, todas deben estar Realizadas o Canceladas.
+              </p>
+            </div>
 
-          <div className="rounded-lg border border-gris-200 bg-white p-6">
-            <h2 className="text-sm font-semibold text-gris-900">Agregar mano de obra</h2>
-            <form action={createManoDeObraWithId} className="mt-4 space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gris-700">Operario</label>
-                <select
-                  name="personalId"
-                  defaultValue=""
-                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                >
-                  <option value="">Sin especificar</option>
-                  {personal.map((persona) => (
-                    <option key={persona.id} value={persona.id}>
-                      {persona.apellido}, {persona.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gris-700">Fecha</label>
-                  <input
-                    name="fecha"
-                    type="date"
-                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gris-700">Horas trabajadas</label>
-                  <input
-                    name="horasTrabajadas"
-                    type="number"
-                    step="0.1"
-                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gris-700">Tareas</label>
-                <textarea
-                  name="tareas"
-                  rows={2}
-                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gris-700">Costo</label>
-                <input
-                  name="costo"
-                  type="number"
-                  step="0.01"
-                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gris-700">Comentarios</label>
-                <textarea
-                  name="comentarios"
-                  rows={2}
-                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                />
-              </div>
+            <div className="mt-4 space-y-3">
+              {ot.tareas.map((tarea) => {
+                const updateTareaWithId = updateTarea.bind(null, ot.id, tarea.id);
+                const deleteTareaWithId = deleteTarea.bind(null, ot.id, tarea.id);
+
+                return (
+                  <details key={tarea.id} name="tarea-ot" className="rounded-lg border border-gris-200">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-4 hover:bg-gris-50">
+                      <p className="text-sm font-medium text-gris-900">{tarea.descripcion}</p>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${claseBadgeEstado(tarea.estado.rstatus)}`}
+                      >
+                        {tarea.estado.status}
+                      </span>
+                    </summary>
+
+                    <div className="border-t border-gris-100 p-4">
+                      <ActionForm action={updateTareaWithId} className="space-y-2">
+                        <div>
+                          <label className="block text-xs font-medium text-gris-700">
+                            Descripción
+                          </label>
+                          <textarea
+                            name="descripcion"
+                            required
+                            rows={2}
+                            defaultValue={tarea.descripcion}
+                            className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs font-medium text-gris-700">Estado</label>
+                            <select
+                              name="estadoId"
+                              defaultValue={tarea.estadoId}
+                              className="mt-1 w-full rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
+                            >
+                              {estadosTarea.map((estado) => (
+                                <option key={estado.id} value={estado.id}>
+                                  {estado.status}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gris-700">Operario</label>
+                            <select
+                              name="personalId"
+                              defaultValue={tarea.personalId ?? ""}
+                              className="mt-1 w-full rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
+                            >
+                              <option value="">Sin especificar</option>
+                              {personal.map((persona) => (
+                                <option key={persona.id} value={persona.id}>
+                                  {persona.apellido}, {persona.nombre}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-xs font-medium text-gris-700">Fecha</label>
+                            <input
+                              name="fecha"
+                              type="date"
+                              defaultValue={toDateInput(tarea.fecha)}
+                              className="mt-1 w-full rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gris-700">Horas</label>
+                            <input
+                              name="horas"
+                              type="number"
+                              step="0.1"
+                              defaultValue={tarea.horas ?? ""}
+                              className="mt-1 w-full rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gris-700">Costo</label>
+                            <input
+                              name="costo"
+                              type="number"
+                              step="0.01"
+                              defaultValue={tarea.costo ?? ""}
+                              className="mt-1 w-full rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gris-700">
+                            Comentario
+                          </label>
+                          <textarea
+                            name="comentarios"
+                            rows={2}
+                            defaultValue={tarea.comentarios ?? ""}
+                            className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          className="w-full rounded-md border border-gris-300 py-1.5 text-xs font-medium text-gris-700 hover:bg-gris-50"
+                        >
+                          Guardar tarea
+                        </button>
+                      </ActionForm>
+
+                      <ActionForm action={deleteTareaWithId} className="mt-3">
+                        <button
+                          type="submit"
+                          className="text-xs font-medium text-red-500 hover:underline"
+                        >
+                          Eliminar tarea
+                        </button>
+                      </ActionForm>
+                    </div>
+                  </details>
+                );
+              })}
+              {ot.tareas.length === 0 && (
+                <p className="text-sm text-gris-500">Todavía no hay tareas cargadas en esta OT.</p>
+              )}
+            </div>
+
+            <ActionForm action={createTareaWithId} className="mt-4 space-y-2 border-t border-gris-100 pt-4">
+              <label className="block text-xs font-medium text-gris-700">Nueva tarea</label>
+              <textarea
+                name="descripcion"
+                required
+                rows={2}
+                placeholder="Descripción de la tarea a realizar"
+                className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+              />
               <button
                 type="submit"
-                className="w-full rounded-md bg-marron-600 py-2 text-sm font-medium text-white hover:bg-marron-700"
+                className="w-full rounded-md bg-celeste-700 py-2 text-sm font-medium text-white hover:bg-celeste-800"
               >
-                Agregar
+                Agregar tarea
               </button>
-            </form>
+            </ActionForm>
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 // Tablas que hoy usan la tabla genérica Estado. Agregar una nueva acá
 // implica también sumar el campo estadoId a su modelo y cablear las
 // pantallas correspondientes.
-export const TABLAS_ESTADO = ["OrdenTrabajo", "Activo", "Aeronave"] as const;
+export const TABLAS_ESTADO = ["OrdenTrabajo", "OrdenTrabajoTarea", "Activo", "Aeronave"] as const;
 
 // RSTATUS conocidos por el código (definen colores y, a futuro, lógica de
 // negocio). Al cargar un Estado nuevo se elige uno de estos según la tabla.
