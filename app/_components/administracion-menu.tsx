@@ -8,6 +8,7 @@ const ITEMS = [
   { href: "/admin/grupos", label: "Grupos" },
   { href: "/admin/usuarios", label: "Usuarios" },
   { href: "/admin/estados", label: "Estados" },
+  { href: "/admin/auditoria", label: "Auditoría" },
 ];
 
 export function AdministracionMenu() {

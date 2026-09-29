@@ -32,3 +32,12 @@ export async function verificarPermiso(accion: Accion) {
     );
   }
 }
+
+// Para pantallas exclusivas de ADMIN (ej. Auditoría) además del filtro de
+// proxy.ts: un matcher mal configurado no debería dejar pasar una acción.
+export async function verificarAdmin() {
+  const session = await auth();
+  if (session?.user?.role !== "ADMIN") {
+    throw new Error("Esta acción es exclusiva para administradores.");
+  }
+}

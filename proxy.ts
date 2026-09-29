@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { registrarLogout } from "@/lib/auditoria-accesos";
 import type { NextFetchEvent, NextRequest } from "next/server";
 
 const ACTIVITY_COOKIE = "am_last_activity";
@@ -83,6 +84,7 @@ const withAuth = auth(async (req) => {
   const ahora = Date.now();
 
   if (ultimaActividad && ahora - Number(ultimaActividad) > limiteMs) {
+    await registrarLogout(req.auth.user?.name || req.auth.user?.email || null);
     const response = NextResponse.redirect(new URL(`/login?${IDLE_LOGOUT_MARKER}`, req.url));
     clearSessionCookies(response);
     return response;
@@ -93,6 +95,7 @@ const withAuth = auth(async (req) => {
     "/admin/grupos",
     "/admin/usuarios",
     "/admin/estados",
+    "/admin/auditoria",
   ];
   const isAdminOnlyRoute = ADMIN_ONLY_PREFIXES.some((prefix) =>
     req.nextUrl.pathname.startsWith(prefix)

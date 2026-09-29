@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { registrarLogin } from "@/lib/auditoria-accesos";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: "jwt" },
@@ -32,6 +33,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           user.passwordHash
         );
         if (!passwordMatches) return null;
+
+        await registrarLogin(user.name || user.email);
 
         return {
           id: user.id,

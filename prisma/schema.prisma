@@ -446,3 +446,46 @@ model RegistroVuelo {
 
   @@map("registros_vuelo")
 }
+
+// Qué pares tabla+campo están activos para auditoría en este momento. Se
+// arma desde /admin/auditoria/campos. Si un par no está acá, los cambios en
+// ese campo no generan filas en Auditoria (ver lib/auditoria-motor.ts).
+model CampoAuditado {
+  id        String   @id @default(cuid())
+  tabla     String
+  campo     String
+  createdAt DateTime @default(now())
+
+  @@unique([tabla, campo])
+  @@map("campos_auditados")
+}
+
+// Historial de cambios en los campos marcados en CampoAuditado. Se completa
+// solo desde una extensión de Prisma (lib/auditoria-motor.ts) que intercepta
+// los create/update/delete de cualquier tabla del sistema.
+model Auditoria {
+  id            String   @id @default(cuid())
+  tabla         String
+  campo         String
+  accion        String // INSERT | UPDATE | DELETE
+  valorAnterior String?  @db.Text
+  valorNuevo    String?  @db.Text
+  usuario       String?
+  fecha         DateTime @default(now())
+
+  @@index([tabla, campo])
+  @@index([fecha])
+  @@map("auditoria")
+}
+
+// Ingreso y egreso de usuarios al sistema (login/logout), independiente de
+// Auditoria porque no es un cambio de datos sino de sesión.
+model AuditoriaAcceso {
+  id      String   @id @default(cuid())
+  usuario String?
+  accion  String // LOGIN | LOGOUT
+  fecha   DateTime @default(now())
+
+  @@index([fecha])
+  @@map("auditoria_accesos")
+}
