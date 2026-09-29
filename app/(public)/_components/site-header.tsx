@@ -4,6 +4,7 @@ import { LogoutButton } from "../../_components/logout-button";
 import { OperacionesMenu } from "../../_components/operaciones-menu";
 import { AdministracionMenu } from "../../_components/administracion-menu";
 import { UserMenu } from "../../_components/user-menu";
+import { APP_VERSION } from "@/lib/version";
 
 const navLinks = [
   { href: "/", label: "Inicio" },
@@ -19,63 +20,77 @@ export async function SiteHeader() {
   return (
     <header className="border-b border-gris-200 bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-        <Link href={loggedIn ? "/admin" : "/"} className="flex items-baseline gap-2">
-          <span className="text-xl font-semibold tracking-wide text-celeste-800">
-            AEROMANTEN
-          </span>
-          <span className="hidden text-xs text-gris-500 sm:inline">
-            Mantenimiento Aeronáutico
-          </span>
-        </Link>
-
-        <nav className="flex items-center gap-6">
-          {loggedIn ? (
-            <div className="hidden items-center gap-6 md:flex">
-              <Link
-                href="/admin"
-                className="text-sm font-medium text-gris-700 hover:text-celeste-700"
-              >
-                Dashboard
+        {loggedIn ? (
+          <>
+            <div className="flex items-center gap-6">
+              <Link href="/admin" className="flex items-baseline gap-2">
+                <span className="text-xl font-semibold tracking-wide text-celeste-800">
+                  AEROMANTEN
+                </span>
               </Link>
-              <OperacionesMenu />
-              {session.user.role === "ADMIN" && <AdministracionMenu />}
+              <nav className="hidden items-center gap-6 md:flex">
+                <Link
+                  href="/admin"
+                  className="text-sm font-medium text-gris-700 hover:text-celeste-700"
+                >
+                  Dashboard
+                </Link>
+                <OperacionesMenu />
+                {session.user.role === "ADMIN" && <AdministracionMenu />}
+              </nav>
             </div>
-          ) : (
-            <ul className="hidden items-center gap-6 text-sm font-medium text-gris-700 md:flex">
-              {navLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="transition-colors hover:text-celeste-700"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
 
-          {loggedIn ? (
-            <UserMenu name={session.user.name} email={session.user.email}>
-              <LogoutButton className="block w-full rounded px-2 py-2 text-left text-sm text-gris-700 hover:bg-gris-50 hover:text-celeste-700" />
-            </UserMenu>
-          ) : (
-            <div className="flex items-center gap-4">
-              <Link
-                href="/register"
-                className="hidden text-sm font-medium text-gris-600 hover:text-celeste-700 sm:inline"
-              >
-                Registrarse
-              </Link>
-              <Link
-                href="/login"
-                className="rounded-md bg-celeste-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-celeste-800"
-              >
-                Ingresar
-              </Link>
+            <div className="flex items-center gap-3">
+              <span className="rounded-full bg-gris-100 px-2 py-0.5 text-xs font-medium text-gris-500">
+                Beta v{APP_VERSION}
+              </span>
+              <UserMenu name={session.user.name} email={session.user.email}>
+                <LogoutButton className="block w-full rounded px-2 py-2 text-left text-sm text-gris-700 hover:bg-gris-50 hover:text-celeste-700" />
+              </UserMenu>
             </div>
-          )}
-        </nav>
+          </>
+        ) : (
+          <>
+            <Link href="/" className="flex items-baseline gap-2">
+              <span className="text-xl font-semibold tracking-wide text-celeste-800">
+                AEROMANTEN
+              </span>
+              <span className="hidden text-xs text-gris-500 sm:inline">
+                Mantenimiento Aeronáutico
+              </span>
+            </Link>
+
+            <nav className="flex items-center gap-6">
+              <ul className="hidden items-center gap-6 text-sm font-medium text-gris-700 md:flex">
+                {navLinks.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="transition-colors hover:text-celeste-700"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="flex items-center gap-4">
+                <Link
+                  href="/register"
+                  className="hidden text-sm font-medium text-gris-600 hover:text-celeste-700 sm:inline"
+                >
+                  Registrarse
+                </Link>
+                <Link
+                  href="/login"
+                  className="rounded-md bg-celeste-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-celeste-800"
+                >
+                  Ingresar
+                </Link>
+              </div>
+            </nav>
+          </>
+        )}
       </div>
 
       <nav className="border-t border-gris-100 md:hidden">

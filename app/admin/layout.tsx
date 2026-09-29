@@ -29,7 +29,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
 
           <div className="flex items-center gap-3">
             <span className="rounded-full bg-gris-100 px-2 py-0.5 text-xs font-medium text-gris-500">
-              Beta {APP_VERSION}
+              Beta v{APP_VERSION}
             </span>
             <UserMenu name={session?.user?.name} email={session?.user?.email}>
               <LogoutButton className="block w-full rounded px-2 py-2 text-left text-sm text-gris-700 hover:bg-gris-50 hover:text-celeste-700" />
