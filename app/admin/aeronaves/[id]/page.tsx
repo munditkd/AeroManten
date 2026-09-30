@@ -39,7 +39,6 @@ export default async function AeronaveDetailPage({
     prisma.aeronave.findUnique({
       where: { id },
       include: {
-        propietario: true,
         activos: { orderBy: { tipo: "asc" } },
         mantenimientos: {
           orderBy: { fecha: "desc" },
@@ -78,10 +77,10 @@ export default async function AeronaveDetailPage({
   return (
     <div>
       <Link
-        href={`/admin/propietarios/${aeronave.propietarioId}`}
+        href="/admin/aeronaves"
         className="text-sm text-gris-500 hover:text-celeste-700"
       >
-        ← {aeronave.propietario.nombre}
+        ← Aeronaves
       </Link>
 
       <h1 className="mt-2 text-2xl font-semibold text-gris-900">
