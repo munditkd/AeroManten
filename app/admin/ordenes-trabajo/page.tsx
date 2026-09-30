@@ -9,6 +9,7 @@ import {
 import { obtenerEstados, claseBadgeEstado } from "@/lib/estados";
 import { createOrdenTrabajo } from "./actions";
 import { AeronaveFilter } from "./aeronave-filter";
+import { AeronaveActivoSelector } from "./aeronave-activo-selector";
 
 export default async function OrdenesTrabajoPage({
   searchParams,
@@ -33,17 +34,22 @@ export default async function OrdenesTrabajoPage({
     };
   }
 
-  const [ordenes, aeronaves, personal, mantenimientosPreventivos, estados] = await Promise.all([
-    prisma.ordenTrabajo.findMany({
-      where,
-      orderBy: { fecha: "desc" },
-      include: { aeronave: true, activo: { include: { aeronave: true } }, estado: true },
-    }),
-    prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
-    prisma.personal.findMany({ orderBy: [{ apellido: "asc" }, { nombre: "asc" }] }),
-    prisma.mantenimientoPreventivo.findMany({ orderBy: { codigo: "asc" } }),
-    obtenerEstados("OrdenTrabajo"),
-  ]);
+  const [ordenes, aeronaves, activos, personal, mantenimientosPreventivos, estados] =
+    await Promise.all([
+      prisma.ordenTrabajo.findMany({
+        where,
+        orderBy: { fecha: "desc" },
+        include: { aeronave: true, activo: { include: { aeronave: true } }, estado: true },
+      }),
+      prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
+      prisma.activo.findMany({
+        orderBy: { tipo: "asc" },
+        select: { id: true, tipo: true, codigo: true, aeronaveId: true },
+      }),
+      prisma.personal.findMany({ orderBy: [{ apellido: "asc" }, { nombre: "asc" }] }),
+      prisma.mantenimientoPreventivo.findMany({ orderBy: { codigo: "asc" } }),
+      obtenerEstados("OrdenTrabajo"),
+    ]);
 
   const pill = (active: boolean) =>
     `rounded-md border px-3 py-1.5 text-sm font-medium ${
@@ -144,6 +150,8 @@ export default async function OrdenesTrabajoPage({
               El código se asigna solo (OT-00001, OT-00002...) al guardar.
             </p>
             <form action={createOrdenTrabajo} className="mt-4 space-y-3">
+              <AeronaveActivoSelector aeronaves={aeronaves} activos={activos} />
+
               <div>
                 <label className="block text-xs font-medium text-gris-700">Fecha *</label>
                 <input
@@ -227,25 +235,6 @@ export default async function OrdenesTrabajoPage({
               </div>
 
               <div className="border-t border-gris-100 pt-3">
-                <label className="block text-xs font-medium text-gris-700">Aeronave</label>
-                <select
-                  name="aeronaveId"
-                  defaultValue=""
-                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                >
-                  <option value="">Sin aeronave</option>
-                  {aeronaves.map((aeronave) => (
-                    <option key={aeronave.id} value={aeronave.id}>
-                      {aeronave.matricula}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-gris-400">
-                  El activo específico se elige después de crear la OT, desde el detalle.
-                </p>
-              </div>
-
-              <div>
                 <label className="block text-xs font-medium text-gris-700">
                   Plan de inspección / tarea (MP)
                 </label>

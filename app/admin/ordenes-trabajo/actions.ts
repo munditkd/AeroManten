@@ -75,13 +75,20 @@ export async function createOrdenTrabajo(formData: FormData) {
     estadoId = pendiente.id;
   }
 
+  const datos = ordenTrabajoData(formData);
+  // Si se eligió un activo puntual, la OT queda sobre ese activo: no se
+  // guarda también la aeronave suelta (ya se sabe cuál es vía el activo).
+  if (datos.activoId) {
+    datos.aeronaveId = null;
+  }
+
   await crearOrdenTrabajoConCodigo({
     descripcion,
     fecha,
     estadoId,
     prioridad:
       prioridad && Object.values(PrioridadOT).includes(prioridad) ? prioridad : undefined,
-    ...ordenTrabajoData(formData),
+    ...datos,
   });
 
   revalidatePath("/admin/ordenes-trabajo");
