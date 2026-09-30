@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const servicios = [
@@ -34,31 +35,43 @@ export default function HomePage() {
   return (
     <div>
       <section className="bg-celeste-900 text-white">
-        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <p className="text-sm font-semibold uppercase tracking-widest text-celeste-300">
-            Mantenimiento Aeronáutico
-          </p>
-          <h1 className="mt-4 max-w-2xl text-4xl font-semibold leading-tight sm:text-5xl">
-            Mantenimiento aeronáutico confiable para tu flota
-          </h1>
-          <p className="mt-6 max-w-xl text-lg text-celeste-100">
-            Trabajamos con empresas que operan aeronaves propias o
-            alquiladas, asegurando que cada mantenimiento se realice a tiempo
-            y conforme a la normativa vigente.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-4">
-            <Link
-              href="/contacto"
-              className="rounded-md bg-white px-6 py-3 text-sm font-semibold text-celeste-900 transition-colors hover:bg-celeste-100"
-            >
-              Contactanos
-            </Link>
-            <Link
-              href="/servicios"
-              className="rounded-md border border-celeste-400 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-celeste-800"
-            >
-              Ver servicios
-            </Link>
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[1fr_auto] lg:items-center lg:gap-20">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-widest text-celeste-300">
+              Mantenimiento Aeronáutico
+            </p>
+            <h1 className="mt-4 max-w-2xl text-4xl font-semibold leading-tight sm:text-5xl">
+              Mantenimiento aeronáutico confiable para tu flota
+            </h1>
+            <p className="mt-6 max-w-xl text-lg text-celeste-100">
+              Trabajamos con empresas que operan aeronaves propias o
+              alquiladas, asegurando que cada mantenimiento se realice a tiempo
+              y conforme a la normativa vigente.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Link
+                href="/contacto"
+                className="rounded-md bg-white px-6 py-3 text-sm font-semibold text-celeste-900 transition-colors hover:bg-celeste-100"
+              >
+                Contactanos
+              </Link>
+              <Link
+                href="/servicios"
+                className="rounded-md border border-celeste-400 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-celeste-800"
+              >
+                Ver servicios
+              </Link>
+            </div>
+          </div>
+          <div className="justify-self-center rounded-xl bg-white p-4 shadow-lg lg:justify-self-end">
+            <Image
+              src="/logo-aeromanten.jpeg"
+              alt="Aeromanten"
+              width={400}
+              height={400}
+              className="h-auto w-full max-w-[460px]"
+              priority
+            />
           </div>
         </div>
       </section>

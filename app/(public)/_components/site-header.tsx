@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { LogoutButton } from "../../_components/logout-button";
@@ -23,7 +24,8 @@ export async function SiteHeader() {
         {loggedIn ? (
           <>
             <div className="flex items-center gap-6">
-              <Link href="/admin" className="flex items-baseline gap-2">
+              <Link href="/admin" className="flex items-center gap-2">
+                <Image src="/logo-icon.png" alt="" width={36} height={36} className="h-9 w-9" />
                 <span className="text-xl font-semibold tracking-wide text-celeste-800">
                   AEROMANTEN
                 </span>
@@ -51,7 +53,8 @@ export async function SiteHeader() {
           </>
         ) : (
           <>
-            <Link href="/" className="flex items-baseline gap-2">
+            <Link href="/" className="flex items-center gap-2">
+              <Image src="/logo-icon.png" alt="" width={36} height={36} className="h-9 w-9" />
               <span className="text-xl font-semibold tracking-wide text-celeste-800">
                 AEROMANTEN
               </span>
