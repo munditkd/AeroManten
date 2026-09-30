@@ -29,10 +29,10 @@ export default async function RelacionarActivosMPPage() {
   return (
     <div>
       <Link
-        href="/admin/activos"
+        href="/admin/mantenimiento-preventivo"
         className="text-sm text-gris-500 hover:text-celeste-700"
       >
-        ← Activos
+        ← Mantenimiento Preventivo
       </Link>
 
       <h1 className="mt-2 text-2xl font-semibold text-gris-900">
