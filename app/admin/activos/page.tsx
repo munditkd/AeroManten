@@ -38,6 +38,19 @@ export default async function ActivosPage({
     obtenerEstados("Activo"),
   ]);
 
+  const aeronaveSeleccionada = aeronaveId
+    ? aeronaves.find((aeronave) => aeronave.id === aeronaveId)
+    : undefined;
+
+  let tituloListado = "Todos los Activos";
+  if (vista === "deposito") {
+    tituloListado = "Activos en Depósito";
+  } else if (vista === "montados") {
+    tituloListado = aeronaveSeleccionada
+      ? `Activos Montados sobre ${aeronaveSeleccionada.matricula}`
+      : "Activos Montados";
+  }
+
   const pill = (active: boolean) =>
     `rounded-md border px-3 py-1.5 text-sm font-medium ${
       active
@@ -68,6 +81,10 @@ export default async function ActivosPage({
               Activos en Depósito
             </Link>
           </div>
+
+          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-gris-700">
+            {tituloListado}
+          </p>
 
           <div className="overflow-x-auto rounded-lg border border-gris-200 bg-white">
             <table className="w-full text-left text-sm">
