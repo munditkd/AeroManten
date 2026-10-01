@@ -1,6 +1,6 @@
 {
   "name": "aeromanten",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -12,7 +12,8 @@
     "@auth/prisma-adapter": "^2.11.3",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
-    "next": "16.3.0",
+    "exceljs": "^4.4.0",
+    "next": "^16.3.8",
     "next-auth": "^5.0.0-beta.32",
     "nodemailer": "^8.0.11",
     "prisma": "^6.19.3",
