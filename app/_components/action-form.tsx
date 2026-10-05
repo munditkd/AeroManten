@@ -1,37 +1,23 @@
 "use client";
 
 import { useActionState } from "react";
-import { unstable_rethrow } from "next/navigation";
+import type { EstadoAccion } from "@/lib/accion-segura";
 
-type State = { error: string | null };
-
-// Envuelve una server action para que, si lanza un Error (ej. validaciones de
-// negocio), se muestre como un mensaje prolijo en vez de la pantalla de error
-// de Next.js. Los redirect() / notFound() internos se re-lanzan tal cual para
-// que sigan funcionando.
+// El "action" que recibe este componente tiene que devolver el error como
+// valor (ver lib/accion-segura.ts), nunca lanzarlo — es lo único que
+// funciona de forma confiable en producción con useActionState.
 export function ActionForm({
   action,
   children,
   className,
 }: {
-  action: (formData: FormData) => Promise<void>;
+  action: (prevState: EstadoAccion, formData: FormData) => Promise<EstadoAccion>;
   children: React.ReactNode;
   className?: string;
 }) {
-  const [state, formAction, isPending] = useActionState<State, FormData>(
-    async (_prevState, formData) => {
-      try {
-        await action(formData);
-        return { error: null };
-      } catch (error) {
-        unstable_rethrow(error);
-        return {
-          error: error instanceof Error ? error.message : "Ocurrió un error inesperado.",
-        };
-      }
-    },
-    { error: null }
-  );
+  const [state, formAction, isPending] = useActionState<EstadoAccion, FormData>(action, {
+    error: null,
+  });
 
   return (
     <form action={formAction} className={className}>

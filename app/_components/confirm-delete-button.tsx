@@ -1,16 +1,19 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { EstadoAccion } from "@/lib/accion-segura";
 
 // Botón que pide confirmación con window.confirm antes de ejecutar una server
-// action sin formulario visible (ej. "Eliminar" en una fila de grilla).
+// action sin formulario visible (ej. "Eliminar" en una fila de grilla). El
+// action tiene que devolver el error como valor, nunca lanzarlo (ver
+// lib/accion-segura.ts) — es lo único confiable en producción.
 export function ConfirmDeleteButton({
   action,
   mensaje,
   className,
   children,
 }: {
-  action: () => Promise<void>;
+  action: () => Promise<EstadoAccion>;
   mensaje: string;
   className?: string;
   children: React.ReactNode;
@@ -28,11 +31,8 @@ export function ConfirmDeleteButton({
           if (!window.confirm(mensaje)) return;
           setError(null);
           startTransition(async () => {
-            try {
-              await action();
-            } catch (e) {
-              setError(e instanceof Error ? e.message : "No se pudo completar la acción");
-            }
+            const resultado = await action();
+            if (resultado.error) setError(resultado.error);
           });
         }}
       >
