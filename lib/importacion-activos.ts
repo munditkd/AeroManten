@@ -7,7 +7,7 @@ import { Prisma } from "@prisma/client";
 // las columnas en el Excel no importa, se buscan por el texto del
 // encabezado (sin mayúsculas/espacios de más).
 const COLUMNAS = [
-  { header: "Tipo", campo: "tipo", requerido: true, tipo: "texto" as const },
+  { header: "Clase", campo: "claseTexto", requerido: true, tipo: "texto" as const },
   { header: "Fabricante", campo: "marca", requerido: false, tipo: "texto" as const },
   { header: "Numero de Parte", campo: "modelo", requerido: false, tipo: "texto" as const },
   { header: "Numero de Serie", campo: "numeroSerie", requerido: false, tipo: "texto" as const },
@@ -107,14 +107,19 @@ export async function validarArchivoActivos(
     };
   }
 
-  // Pre-cargo aeronaves y estados existentes para resolver matrícula/estado
-  // por texto, y las combinaciones marca+modelo+numeroSerie ya usadas, para
-  // detectar duplicados contra lo que ya está en la base.
-  const [aeronaves, estados, activosExistentes] = await Promise.all([
+  // Pre-cargo aeronaves, estados y clases existentes para resolver
+  // matrícula/estado/clase por texto, y las combinaciones
+  // marca+modelo+numeroSerie ya usadas, para detectar duplicados contra lo
+  // que ya está en la base.
+  const [aeronaves, estados, clases, activosExistentes] = await Promise.all([
     prisma.aeronave.findMany({ select: { id: true, matricula: true } }),
     prisma.estado.findMany({
       where: { tabla: "Activo", propiedad: "estado" },
       select: { id: true, status: true },
+    }),
+    prisma.clase.findMany({
+      where: { entidad: "Activo" },
+      select: { id: true, nombre: true },
     }),
     prisma.activo.findMany({
       where: { marca: { not: null }, modelo: { not: null }, numeroSerie: { not: null } },
@@ -126,6 +131,7 @@ export async function validarArchivoActivos(
     aeronaves.map((a) => [normalizar(a.matricula), a.id])
   );
   const estadoPorTexto = new Map(estados.map((e) => [normalizar(e.status), e.id]));
+  const clasePorTexto = new Map(clases.map((c) => [normalizar(c.nombre), c.id]));
   const combinacionesExistentes = new Set(
     activosExistentes.map((a) => `${normalizar(a.marca!)}|${normalizar(a.modelo!)}|${normalizar(a.numeroSerie!)}`)
   );
@@ -150,11 +156,19 @@ export async function validarArchivoActivos(
 
     const errroresFila: string[] = [];
 
-    const tipo = String(valores.tipo ?? "").trim();
-    if (!tipo) {
-      errroresFila.push("Tipo es obligatorio");
-    } else if (tipo.length > LONGITUD_MAXIMA_TEXTO) {
-      errroresFila.push(`Tipo supera los ${LONGITUD_MAXIMA_TEXTO} caracteres permitidos`);
+    const claseTexto = String(valores.claseTexto ?? "").trim();
+    let claseId: string | null = null;
+    if (!claseTexto) {
+      errroresFila.push("Clase es obligatoria");
+    } else {
+      const id = clasePorTexto.get(normalizar(claseTexto));
+      if (!id) {
+        errroresFila.push(
+          `La clase "${claseTexto}" no existe. Cargala primero en Administración > Clases y Categorías.`
+        );
+      } else {
+        claseId = id;
+      }
     }
 
     function textoOpcional(valor: unknown, etiqueta: string): string | null {
@@ -259,7 +273,7 @@ export async function validarArchivoActivos(
     }
 
     datos.push({
-      tipo,
+      claseId: claseId!,
       marca,
       modelo,
       numeroSerie,

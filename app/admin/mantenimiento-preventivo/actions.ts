@@ -21,6 +21,14 @@ function num(formData: FormData, key: string): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
+// Un valor vacío significa "sin relación" (null), no "no tocar el campo".
+function optionalRelationId(formData: FormData, key: string): string | null {
+  const value = formData.get(key);
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
+
 function mantenimientoData(formData: FormData) {
   return {
     horas: num(formData, "horas"),
@@ -28,6 +36,8 @@ function mantenimientoData(formData: FormData) {
     meses: num(formData, "meses"),
     personas: num(formData, "personas"),
     horasHombre: num(formData, "horasHombre"),
+    claseId: optionalRelationId(formData, "claseId"),
+    categoriaId: optionalRelationId(formData, "categoriaId"),
   };
 }
 

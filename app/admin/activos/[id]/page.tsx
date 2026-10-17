@@ -9,19 +9,12 @@ import {
   ESTADO_BADGE_CLASS,
 } from "@/lib/mantenimiento-preventivo";
 import { obtenerEstados } from "@/lib/estados";
+import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
+import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
 
 function toDateInput(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
 }
-
-const TIPOS_ACTIVO_SUGERIDOS = [
-  "Motor",
-  "Hélice",
-  "Transponder",
-  "Tren de aterrizaje",
-  "Batería",
-  "Instrumento",
-];
 
 export default async function ActivoDetailPage({
   params,
@@ -30,11 +23,13 @@ export default async function ActivoDetailPage({
 }) {
   const { id } = await params;
 
-  const [activo, aeronaves, relacionesMP, estados] = await Promise.all([
+  const [activo, aeronaves, relacionesMP, estados, clases, categorias] = await Promise.all([
     prisma.activo.findUnique({
       where: { id },
       include: {
         aeronave: true,
+        clase: true,
+        categoria: true,
         mantenimientos: { orderBy: { fecha: "desc" } },
       },
     }),
@@ -47,6 +42,8 @@ export default async function ActivoDetailPage({
       },
     }),
     obtenerEstados("Activo"),
+    obtenerClases("Activo"),
+    obtenerCategoriasDeEntidad("Activo"),
   ]);
 
   if (!activo) notFound();
@@ -86,7 +83,7 @@ export default async function ActivoDetailPage({
       )}
 
       <h1 className="mt-2 text-2xl font-semibold text-gris-900">
-        {activo.tipo}
+        {activo.clase.nombre}
       </h1>
       <p className="mt-1 text-sm text-gris-500">Código {activo.codigo}</p>
 
@@ -133,23 +130,13 @@ export default async function ActivoDetailPage({
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gris-700">
-                Tipo *
-              </label>
-              <input
-                name="tipo"
-                required
-                list="tipos-activo"
-                defaultValue={activo.tipo}
-                className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-              />
-              <datalist id="tipos-activo">
-                {TIPOS_ACTIVO_SUGERIDOS.map((tipo) => (
-                  <option key={tipo} value={tipo} />
-                ))}
-              </datalist>
-            </div>
+            <ClaseCategoriaSelector
+              clases={clases}
+              categorias={categorias}
+              claseIdInicial={activo.claseId}
+              categoriaIdInicial={activo.categoriaId ?? ""}
+              claseRequerida
+            />
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gris-700">

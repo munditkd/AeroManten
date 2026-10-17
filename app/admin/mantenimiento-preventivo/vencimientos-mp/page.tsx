@@ -10,7 +10,7 @@ import {
 export default async function VencimientosMPPage() {
   const relaciones = await prisma.activoMantenimientoPreventivo.findMany({
     include: {
-      activo: { include: { aeronave: true } },
+      activo: { include: { aeronave: true, clase: true } },
       aeronave: true,
       mantenimientoPreventivo: true,
       realizaciones: { orderBy: { fecha: "desc" }, take: 1 },
@@ -87,7 +87,7 @@ export default async function VencimientosMPPage() {
                   </p>
                 </td>
                 <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
-                  {esAeronave ? "Aeronave completa" : relacion.activo?.tipo}
+                  {esAeronave ? "Aeronave completa" : relacion.activo?.clase.nombre}
                   <p className="text-xs text-gris-500">
                     {esAeronave
                       ? relacion.aeronave?.matricula

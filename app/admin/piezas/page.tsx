@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createPieza } from "./actions";
-import { ClaseCategoriaSelector } from "./clase-categoria-selector";
+import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
 import { ActionForm } from "@/app/_components/action-form";
+import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
 
 const UNIDADES_MEDIDA_SUGERIDAS = ["Unidad", "Metro", "Litro", "Kilogramo", "Caja", "Par"];
 
@@ -19,8 +20,8 @@ export default async function PiezasPage({
       orderBy: { nombre: "asc" },
       include: { clase: true, categoria: true },
     }),
-    prisma.piezaClase.findMany({ orderBy: { nombre: "asc" } }),
-    prisma.piezaCategoria.findMany({ orderBy: { nombre: "asc" } }),
+    obtenerClases("Pieza"),
+    obtenerCategoriasDeEntidad("Pieza"),
   ]);
 
   const pill = (active: boolean) =>
@@ -42,7 +43,7 @@ export default async function PiezasPage({
         <div>
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <Link href="/admin/piezas" className={pill(!claseId)}>
-              Todas las Clases
+              Todas las Piezas
             </Link>
             {clases.map((clase) => (
               <Link
@@ -53,12 +54,6 @@ export default async function PiezasPage({
                 {clase.nombre}
               </Link>
             ))}
-            <Link
-              href="/admin/piezas/clases"
-              className="ml-auto text-xs font-medium text-celeste-700 hover:underline"
-            >
-              Administrar Clases y Categorías
-            </Link>
           </div>
 
           <div className="overflow-x-auto rounded-lg border border-gris-200 bg-white">

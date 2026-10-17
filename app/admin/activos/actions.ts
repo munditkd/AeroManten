@@ -47,21 +47,22 @@ function activoData(formData: FormData) {
     mesesTSN: num(formData, "mesesTSN"),
     mesesTSO: num(formData, "mesesTSO"),
     estadoId: optionalRelationId(formData, "estadoId"),
+    categoriaId: optionalRelationId(formData, "categoriaId"),
   };
 }
 
 export async function createActivo(formData: FormData) {
   await verificarPermiso("insertar");
 
-  const tipo = str(formData, "tipo");
-  if (!tipo) {
-    throw new Error("El tipo es obligatorio");
+  const claseId = str(formData, "claseId");
+  if (!claseId) {
+    throw new Error("La clase es obligatoria");
   }
   const aeronaveId = optionalRelationId(formData, "aeronaveId");
 
   await prisma.activo.create({
     data: {
-      tipo,
+      claseId,
       aeronaveId,
       ...activoData(formData),
     },
@@ -74,8 +75,8 @@ export async function createActivo(formData: FormData) {
 export async function updateActivo(id: string, formData: FormData) {
   await verificarPermiso("modificar");
 
-  const tipo = str(formData, "tipo");
-  if (!tipo) throw new Error("El tipo es obligatorio");
+  const claseId = str(formData, "claseId");
+  if (!claseId) throw new Error("La clase es obligatoria");
 
   const before = await prisma.activo.findUnique({
     where: { id },
@@ -85,7 +86,7 @@ export async function updateActivo(id: string, formData: FormData) {
   const activo = await prisma.activo.update({
     where: { id },
     data: {
-      tipo,
+      claseId,
       aeronaveId: optionalRelationId(formData, "aeronaveId"),
       ...activoData(formData),
     },

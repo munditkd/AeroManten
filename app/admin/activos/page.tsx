@@ -2,17 +2,10 @@ import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { obtenerEstados, claseBadgeEstado } from "@/lib/estados";
+import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
 import { createActivo } from "./actions";
 import { MontadosFilter } from "./montados-filter";
-
-const TIPOS_ACTIVO_SUGERIDOS = [
-  "Motor",
-  "Hélice",
-  "Transponder",
-  "Tren de aterrizaje",
-  "Batería",
-  "Instrumento",
-];
+import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
 
 export default async function ActivosPage({
   searchParams,
@@ -28,14 +21,16 @@ export default async function ActivosPage({
     where = aeronaveId ? { aeronaveId } : { aeronaveId: { not: null } };
   }
 
-  const [activos, aeronaves, estados] = await Promise.all([
+  const [activos, aeronaves, estados, clases, categorias] = await Promise.all([
     prisma.activo.findMany({
       where,
-      orderBy: [{ aeronave: { matricula: "asc" } }, { tipo: "asc" }],
-      include: { aeronave: true, estado: true },
+      orderBy: [{ aeronave: { matricula: "asc" } }, { clase: { nombre: "asc" } }],
+      include: { aeronave: true, estado: true, clase: true, categoria: true },
     }),
     prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
     obtenerEstados("Activo"),
+    obtenerClases("Activo"),
+    obtenerCategoriasDeEntidad("Activo"),
   ]);
 
   const aeronaveSeleccionada = aeronaveId
@@ -91,7 +86,8 @@ export default async function ActivosPage({
               <thead className="border-b border-gris-200 bg-gris-50 text-xs uppercase text-gris-500">
                 <tr>
                   <th className="px-4 py-3">Código</th>
-                  <th className="px-4 py-3">Tipo</th>
+                  <th className="px-4 py-3">Clase</th>
+                  <th className="px-4 py-3">Categoría</th>
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3">Fabricante / N° de Parte</th>
                   <th className="px-4 py-3">N° de serie</th>
@@ -113,8 +109,11 @@ export default async function ActivosPage({
                         href={`/admin/activos/${activo.id}`}
                         className="font-medium text-celeste-700 hover:underline"
                       >
-                        {activo.tipo}
+                        {activo.clase.nombre}
                       </Link>
+                    </td>
+                    <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
+                      {activo.categoria?.nombre ?? "—"}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {activo.estado ? (
@@ -167,7 +166,7 @@ export default async function ActivosPage({
                 {activos.length === 0 && (
                   <tr>
                     <td
-                      colSpan={10}
+                      colSpan={11}
                       className="px-4 py-6 text-center text-gris-500"
                     >
                       {vista === "deposito"
@@ -188,6 +187,15 @@ export default async function ActivosPage({
             <h2 className="text-sm font-semibold text-gris-900">
               Nuevo componente
             </h2>
+            {clases.length === 0 && (
+              <p className="mt-4 text-sm text-gris-500">
+                Primero tenés que{" "}
+                <Link href="/admin/clases" className="text-celeste-700 hover:underline">
+                  crear una Clase para Activos
+                </Link>
+                .
+              </p>
+            )}
             <form action={createActivo} className="mt-4 space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-gris-700">
@@ -226,23 +234,7 @@ export default async function ActivosPage({
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gris-700">
-                    Tipo *
-                  </label>
-                  <input
-                    name="tipo"
-                    required
-                    list="tipos-activo"
-                    placeholder="Motor, hélice, transponder..."
-                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                  />
-                  <datalist id="tipos-activo">
-                    {TIPOS_ACTIVO_SUGERIDOS.map((tipo) => (
-                      <option key={tipo} value={tipo} />
-                    ))}
-                  </datalist>
-                </div>
+                <ClaseCategoriaSelector clases={clases} categorias={categorias} claseRequerida />
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gris-700">

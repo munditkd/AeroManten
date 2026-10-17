@@ -3,7 +3,12 @@
 import { useState } from "react";
 
 type Aeronave = { id: string; matricula: string };
-type Activo = { id: string; tipo: string; codigo: number; aeronaveId: string | null };
+type Activo = {
+  id: string;
+  clase: { nombre: string };
+  codigo: number;
+  aeronaveId: string | null;
+};
 
 // Dos <select> en cascada: elegir una aeronave filtra el segundo select a
 // los activos montados en ella; dejarlo en "Sin aeronave" filtra a los
@@ -54,7 +59,7 @@ export function AeronaveActivoSelector({
           </option>
           {activosFiltrados.map((activo) => (
             <option key={activo.id} value={activo.id}>
-              {activo.tipo} (Código {activo.codigo})
+              {activo.clase.nombre} (Código {activo.codigo})
             </option>
           ))}
         </select>

@@ -39,9 +39,8 @@ function optionalRelationId(formData: FormData, key: string): string | null {
 
 function ordenTrabajoData(formData: FormData) {
   return {
-    tipo: str(formData, "tipo") ?? null,
-    clase: str(formData, "clase") ?? null,
-    categoria: str(formData, "categoria") ?? null,
+    claseId: optionalRelationId(formData, "claseId"),
+    categoriaId: optionalRelationId(formData, "categoriaId"),
     departamento: str(formData, "departamento") ?? null,
     aeronaveId: optionalRelationId(formData, "aeronaveId"),
     activoId: optionalRelationId(formData, "activoId"),

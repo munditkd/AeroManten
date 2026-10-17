@@ -22,7 +22,7 @@ export default async function CargaVuelosPage({
     ? await prisma.aeronave.findUnique({
         where: { id: aeronaveId },
         include: {
-          activos: { orderBy: { tipo: "asc" } },
+          activos: { orderBy: { clase: { nombre: "asc" } }, include: { clase: true } },
         },
       })
     : null;
@@ -277,7 +277,7 @@ export default async function CargaVuelosPage({
                       href={`/admin/activos/${activo.id}`}
                       className="font-medium text-celeste-700 hover:underline"
                     >
-                      {activo.tipo}
+                      {activo.clase.nombre}
                     </Link>
                     <p className="text-xs text-gris-500">
                       Horas TSN/TSO: {activo.horasTSN ?? "—"} / {activo.horasTSO ?? "—"}

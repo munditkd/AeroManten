@@ -48,6 +48,8 @@ function aeronaveData(formData: FormData) {
     mesesTSN: num(formData, "mesesTSN"),
     mesesTSO: num(formData, "mesesTSO"),
     estadoId: optionalRelationId(formData, "estadoId"),
+    claseId: optionalRelationId(formData, "claseId"),
+    categoriaId: optionalRelationId(formData, "categoriaId"),
   };
 }
 

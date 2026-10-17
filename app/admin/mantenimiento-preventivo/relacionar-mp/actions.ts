@@ -133,7 +133,7 @@ export async function generarOTDesdeMP(relacionId: string) {
   const relacion = await prisma.activoMantenimientoPreventivo.findUnique({
     where: { id: relacionId },
     include: {
-      activo: { include: { aeronave: true } },
+      activo: { include: { aeronave: true, clase: true } },
       aeronave: true,
       mantenimientoPreventivo: true,
       realizaciones: { orderBy: { fecha: "desc" }, take: 1 },
@@ -161,7 +161,7 @@ export async function generarOTDesdeMP(relacionId: string) {
 
   const destino = esAeronave
     ? relacion.aeronave!.matricula
-    : `${relacion.activo?.tipo} (${relacion.activo?.aeronave?.matricula ?? "en depósito"})`;
+    : `${relacion.activo?.clase.nombre} (${relacion.activo?.aeronave?.matricula ?? "en depósito"})`;
 
   const comentarios =
     venc.factores.length > 0
@@ -173,7 +173,6 @@ export async function generarOTDesdeMP(relacionId: string) {
 
   const ot = await crearOrdenTrabajoConCodigo({
     descripcion: `${relacion.mantenimientoPreventivo.descripcion} — generada desde MP ${relacion.mantenimientoPreventivo.codigo} (${destino})`,
-    tipo: "Preventivo",
     fecha: new Date(),
     estadoId: pendiente.id,
     aeronaveId: esAeronave ? relacion.aeronaveId : (relacion.activo?.aeronaveId ?? null),

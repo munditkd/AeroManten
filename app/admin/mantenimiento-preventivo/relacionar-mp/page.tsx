@@ -11,7 +11,7 @@ export default async function RelacionarActivosMPPage() {
   const [relaciones, activos, aeronaves, mps] = await Promise.all([
     prisma.activoMantenimientoPreventivo.findMany({
       include: {
-        activo: { include: { aeronave: true } },
+        activo: { include: { aeronave: true, clase: true } },
         aeronave: true,
         mantenimientoPreventivo: true,
         realizaciones: { orderBy: { fecha: "desc" }, take: 1 },
@@ -19,8 +19,8 @@ export default async function RelacionarActivosMPPage() {
       orderBy: { createdAt: "desc" },
     }),
     prisma.activo.findMany({
-      orderBy: { tipo: "asc" },
-      include: { aeronave: true },
+      orderBy: { clase: { nombre: "asc" } },
+      include: { aeronave: true, clase: true },
     }),
     prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
     prisma.mantenimientoPreventivo.findMany({ orderBy: { codigo: "asc" } }),
@@ -83,7 +83,7 @@ export default async function RelacionarActivosMPPage() {
                         >
                           {relacion.aeronave
                             ? "Aeronave completa"
-                            : relacion.activo?.tipo}
+                            : relacion.activo?.clase.nombre}
                         </Link>
                         <p className="text-xs text-gris-500">
                           {relacion.aeronave
@@ -177,7 +177,7 @@ export default async function RelacionarActivosMPPage() {
                       <optgroup label="Activos (componentes)">
                         {activos.map((activo) => (
                           <option key={activo.id} value={`activo:${activo.id}`}>
-                            {activo.tipo} — {activo.numeroSerie ?? "S/N"} (
+                            {activo.clase.nombre} — {activo.numeroSerie ?? "S/N"} (
                             {activo.aeronave?.matricula ?? "depósito"})
                           </option>
                         ))}

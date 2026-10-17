@@ -7,6 +7,7 @@ import {
   PRIORIDAD_OT_BADGE_CLASS,
 } from "@/lib/ordenes-trabajo";
 import { obtenerEstados, claseBadgeEstado } from "@/lib/estados";
+import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
 import {
   updateOrdenTrabajo,
   deleteOrdenTrabajo,
@@ -18,6 +19,7 @@ import {
 } from "../actions";
 import { ActionForm } from "@/app/_components/action-form";
 import { ConfirmDeleteButton } from "@/app/_components/confirm-delete-button";
+import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
 
 function toDateInput(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
@@ -30,31 +32,46 @@ export default async function OrdenTrabajoDetailPage({
 }) {
   const { id } = await params;
 
-  const [ot, aeronaves, activos, personal, mantenimientosPreventivos, estados, estadosTarea, piezas] =
-    await Promise.all([
-      prisma.ordenTrabajo.findUnique({
-        where: { id },
-        include: {
-          tareas: {
-            orderBy: { createdAt: "asc" },
-            include: {
-              estado: true,
-              personal: true,
-              piezas: { orderBy: { createdAt: "asc" }, include: { pieza: true } },
-            },
+  const [
+    ot,
+    aeronaves,
+    activos,
+    personal,
+    mantenimientosPreventivos,
+    estados,
+    estadosTarea,
+    piezas,
+    clases,
+    categorias,
+  ] = await Promise.all([
+    prisma.ordenTrabajo.findUnique({
+      where: { id },
+      include: {
+        tareas: {
+          orderBy: { createdAt: "asc" },
+          include: {
+            estado: true,
+            personal: true,
+            piezas: { orderBy: { createdAt: "asc" }, include: { pieza: true } },
           },
-          originador: true,
-          estado: true,
         },
-      }),
-      prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
-      prisma.activo.findMany({ orderBy: { tipo: "asc" }, include: { aeronave: true } }),
-      prisma.personal.findMany({ orderBy: [{ apellido: "asc" }, { nombre: "asc" }] }),
-      prisma.mantenimientoPreventivo.findMany({ orderBy: { codigo: "asc" } }),
-      obtenerEstados("OrdenTrabajo"),
-      obtenerEstados("OrdenTrabajoTarea"),
-      prisma.pieza.findMany({ orderBy: { nombre: "asc" } }),
-    ]);
+        originador: true,
+        estado: true,
+      },
+    }),
+    prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
+    prisma.activo.findMany({
+      orderBy: { clase: { nombre: "asc" } },
+      include: { aeronave: true, clase: true },
+    }),
+    prisma.personal.findMany({ orderBy: [{ apellido: "asc" }, { nombre: "asc" }] }),
+    prisma.mantenimientoPreventivo.findMany({ orderBy: { codigo: "asc" } }),
+    obtenerEstados("OrdenTrabajo"),
+    obtenerEstados("OrdenTrabajoTarea"),
+    prisma.pieza.findMany({ orderBy: { nombre: "asc" } }),
+    obtenerClases("OrdenTrabajo"),
+    obtenerCategoriasDeEntidad("OrdenTrabajo"),
+  ]);
 
   if (!ot) notFound();
 
@@ -121,32 +138,12 @@ export default async function OrdenTrabajoDetailPage({
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gris-700">Tipo</label>
-                <input
-                  name="tipo"
-                  defaultValue={ot.tipo ?? ""}
-                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gris-700">Clase</label>
-                <input
-                  name="clase"
-                  defaultValue={ot.clase ?? ""}
-                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gris-700">Categoría</label>
-                <input
-                  name="categoria"
-                  defaultValue={ot.categoria ?? ""}
-                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                />
-              </div>
-            </div>
+            <ClaseCategoriaSelector
+              clases={clases}
+              categorias={categorias}
+              claseIdInicial={ot.claseId ?? ""}
+              categoriaIdInicial={ot.categoriaId ?? ""}
+            />
 
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -214,7 +211,7 @@ export default async function OrdenTrabajoDetailPage({
                   <option value="">Sin activo específico</option>
                   {activos.map((activo) => (
                     <option key={activo.id} value={activo.id}>
-                      {activo.tipo} {activo.aeronave ? `(${activo.aeronave.matricula})` : "(depósito)"}
+                      {activo.clase.nombre} {activo.aeronave ? `(${activo.aeronave.matricula})` : "(depósito)"}
                     </option>
                   ))}
                 </select>

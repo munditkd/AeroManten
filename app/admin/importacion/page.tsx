@@ -42,7 +42,8 @@ export default async function ImportacionPage({
           </h3>
           <ul className="mt-2 space-y-1 text-xs text-gris-500">
             <li>
-              <strong className="text-gris-700">Tipo</strong> — obligatorio.
+              <strong className="text-gris-700">Clase</strong> — obligatoria; tiene que coincidir
+              con una Clase ya cargada para Activos en Administración &gt; Clases y Categorías.
             </li>
             <li>Fabricante, Numero de Parte, Numero de Serie — opcionales.</li>
             <li>Fecha de Fabricacion — opcional, formato DD/MM/AAAA.</li>

@@ -1,11 +1,18 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
 import { createMantenimientoPreventivo } from "./actions";
+import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
 
 export default async function MantenimientoPreventivoPage() {
-  const items = await prisma.mantenimientoPreventivo.findMany({
-    orderBy: { codigo: "asc" },
-  });
+  const [items, clases, categorias] = await Promise.all([
+    prisma.mantenimientoPreventivo.findMany({
+      orderBy: { codigo: "asc" },
+      include: { clase: true },
+    }),
+    obtenerClases("MantenimientoPreventivo"),
+    obtenerCategoriasDeEntidad("MantenimientoPreventivo"),
+  ]);
 
   return (
     <div>
@@ -37,6 +44,7 @@ export default async function MantenimientoPreventivoPage() {
                 <tr>
                   <th className="px-4 py-3">Código</th>
                   <th className="px-4 py-3">Descripción</th>
+                  <th className="px-4 py-3">Clase</th>
                   <th className="px-4 py-3">Horas</th>
                   <th className="px-4 py-3">Ciclos</th>
                   <th className="px-4 py-3">Meses</th>
@@ -58,6 +66,9 @@ export default async function MantenimientoPreventivoPage() {
                     </td>
                     <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
                       {item.descripcion}
+                    </td>
+                    <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
+                      {item.clase?.nombre ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
                       {item.horas ?? "—"}
@@ -84,7 +95,7 @@ export default async function MantenimientoPreventivoPage() {
                 {items.length === 0 && (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-4 py-6 text-center text-gris-500"
                     >
                       Todavía no hay tareas de mantenimiento preventivo cargadas.
@@ -123,6 +134,7 @@ export default async function MantenimientoPreventivoPage() {
                   className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
                 />
               </div>
+              <ClaseCategoriaSelector clases={clases} categorias={categorias} />
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gris-700">

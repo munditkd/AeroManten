@@ -141,11 +141,16 @@ model Aeronave {
   propietarioId    String
   // Null = todavía sin clasificar. Se completa a mano por ahora.
   estadoId         String?
+  // Null = todavía sin clasificar (ver modelo Clase/Categoria).
+  claseId          String?
+  categoriaId      String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   propietario               Propietario                     @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
   estado                    Estado?                         @relation(fields: [estadoId], references: [id])
+  clase                     Clase?                          @relation(fields: [claseId], references: [id], onDelete: SetNull)
+  categoria                 Categoria?                      @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
   activos                   Activo[]
   mantenimientos            RegistroMantenimiento[]
   mantenimientosPreventivos ActivoMantenimientoPreventivo[]
@@ -158,7 +163,6 @@ model Aeronave {
 model Activo {
   id               String    @id @default(cuid())
   codigo           Int       @unique @default(autoincrement())
-  tipo             String
   marca            String?
   modelo           String?
   numeroSerie      String?
@@ -173,11 +177,16 @@ model Activo {
   aeronaveId       String?
   // Null = todavía sin clasificar. Se completa a mano por ahora.
   estadoId         String?
+  // Clase es obligatoria (reemplaza al viejo campo de texto libre "Tipo").
+  claseId          String
+  categoriaId      String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   aeronave                  Aeronave?                       @relation(fields: [aeronaveId], references: [id], onDelete: SetNull)
   estado                    Estado?                         @relation(fields: [estadoId], references: [id])
+  clase                     Clase                           @relation(fields: [claseId], references: [id])
+  categoria                 Categoria?                      @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
   mantenimientos            RegistroMantenimiento[]
   mantenimientosPreventivos ActivoMantenimientoPreventivo[]
   ordenesTrabajo            OrdenTrabajo[]
@@ -209,9 +218,14 @@ model MantenimientoPreventivo {
   tarea       String   @db.Text
   personas    Int?
   horasHombre Float?
+  // Null = todavía sin clasificar.
+  claseId     String?
+  categoriaId String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  clase          Clase?                          @relation(fields: [claseId], references: [id], onDelete: SetNull)
+  categoria      Categoria?                      @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
   activos        ActivoMantenimientoPreventivo[]
   ordenesTrabajo OrdenTrabajo[]
 
@@ -350,11 +364,9 @@ model OrdenTrabajo {
   secuencia    Int      @unique @default(autoincrement())
   codigo       String   @unique
   descripcion  String   @db.Text
-  // tipo/clase/categoria quedan como texto libre por ahora; se pueden
-  // convertir en listas fijas más adelante cuando haya valores definidos.
-  tipo         String?
-  clase        String?
-  categoria    String?
+  // Null = todavía sin clasificar.
+  claseId      String?
+  categoriaId  String?
   fecha        DateTime
   estadoId     String
   departamento String?
@@ -386,6 +398,8 @@ model OrdenTrabajo {
   updatedAt      DateTime @updatedAt
 
   estado                  Estado                   @relation(fields: [estadoId], references: [id])
+  clase                   Clase?                   @relation(fields: [claseId], references: [id], onDelete: SetNull)
+  categoria               Categoria?               @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
   aeronave                Aeronave?                @relation(fields: [aeronaveId], references: [id], onDelete: SetNull)
   activo                  Activo?                  @relation(fields: [activoId], references: [id], onDelete: SetNull)
   mantenimientoPreventivo MantenimientoPreventivo? @relation(fields: [mantenimientoPreventivoId], references: [id], onDelete: SetNull)
@@ -421,37 +435,50 @@ model OrdenTrabajoTarea {
   @@map("ordenes_trabajo_tareas")
 }
 
-// Piezas sin número de serie usadas como insumo en mantenimiento (caños,
-// aceite, grasa, etc.), con unidad de medida propia y stock descontable al
-// registrarse su uso en una Tarea de OT (ver OrdenTrabajoTareaPieza). Clase y
-// Categoría son un catálogo administrable (ADMIN) para agruparlas; Categoría
-// siempre pertenece a una Clase.
-model PiezaClase {
+// Catálogo genérico de Clase/Categoría, compartido por varias entidades
+// (Aeronave, Activo, Pieza, MantenimientoPreventivo, OrdenTrabajo, y las que
+// se sumen después — ver lib/clases.ts). "entidad" identifica a cuál
+// aplica cada Clase, igual que "tabla" en Estado. Categoría siempre
+// pertenece a una Clase.
+model Clase {
   id        String   @id @default(cuid())
-  nombre    String   @unique
+  entidad   String
+  nombre    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  categorias PiezaCategoria[]
-  piezas     Pieza[]
+  categorias                Categoria[]
+  aeronaves                 Aeronave[]
+  activos                   Activo[]
+  piezas                    Pieza[]
+  mantenimientosPreventivos MantenimientoPreventivo[]
+  ordenesTrabajo            OrdenTrabajo[]
 
-  @@map("piezas_clases")
+  @@unique([entidad, nombre])
+  @@map("clases")
 }
 
-model PiezaCategoria {
+model Categoria {
   id        String   @id @default(cuid())
   claseId   String
   nombre    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  clase  PiezaClase @relation(fields: [claseId], references: [id], onDelete: Cascade)
-  piezas Pieza[]
+  clase                     Clase                     @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  aeronaves                 Aeronave[]
+  activos                   Activo[]
+  piezas                    Pieza[]
+  mantenimientosPreventivos MantenimientoPreventivo[]
+  ordenesTrabajo            OrdenTrabajo[]
 
   @@unique([claseId, nombre])
-  @@map("piezas_categorias")
+  @@map("categorias")
 }
 
+// Piezas sin número de serie usadas como insumo en mantenimiento (caños,
+// aceite, grasa, etc.), con unidad de medida propia y stock descontable al
+// registrarse su uso en una Tarea de OT (ver OrdenTrabajoTareaPieza).
 model Pieza {
   id           String   @id @default(cuid())
   codigo       Int      @unique @default(autoincrement())
@@ -465,8 +492,8 @@ model Pieza {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  clase     PiezaClase?              @relation(fields: [claseId], references: [id], onDelete: SetNull)
-  categoria PiezaCategoria?          @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  clase     Clase?                   @relation(fields: [claseId], references: [id], onDelete: SetNull)
+  categoria Categoria?               @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
   usos      OrdenTrabajoTareaPieza[]
 
   @@map("piezas")

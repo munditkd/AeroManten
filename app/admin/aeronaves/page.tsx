@@ -1,16 +1,25 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { obtenerEstados, claseBadgeEstado } from "@/lib/estados";
+import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
 import { createAeronave } from "./actions";
+import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
 
 export default async function AeronavesPage() {
-  const [aeronaves, propietarios, estados] = await Promise.all([
+  const [aeronaves, propietarios, estados, clases, categorias] = await Promise.all([
     prisma.aeronave.findMany({
       orderBy: { matricula: "asc" },
-      include: { propietario: true, estado: true, _count: { select: { activos: true } } },
+      include: {
+        propietario: true,
+        estado: true,
+        clase: true,
+        _count: { select: { activos: true } },
+      },
     }),
     prisma.propietario.findMany({ orderBy: { nombre: "asc" } }),
     obtenerEstados("Aeronave"),
+    obtenerClases("Aeronave"),
+    obtenerCategoriasDeEntidad("Aeronave"),
   ]);
 
   return (
@@ -27,6 +36,7 @@ export default async function AeronavesPage() {
               <thead className="border-b border-gris-200 bg-gris-50 text-xs uppercase text-gris-500">
                 <tr>
                   <th className="px-4 py-3">Matrícula</th>
+                  <th className="px-4 py-3">Clase</th>
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3">Fabricante / N° de Parte</th>
                   <th className="px-4 py-3">N° de serie</th>
@@ -48,6 +58,9 @@ export default async function AeronavesPage() {
                       >
                         {aeronave.matricula}
                       </Link>
+                    </td>
+                    <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
+                      {aeronave.clase?.nombre ?? "—"}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {aeronave.estado ? (
@@ -97,7 +110,7 @@ export default async function AeronavesPage() {
                 {aeronaves.length === 0 && (
                   <tr>
                     <td
-                      colSpan={10}
+                      colSpan={11}
                       className="px-4 py-6 text-center text-gris-500"
                     >
                       Todavía no hay aeronaves cargadas.
@@ -175,6 +188,7 @@ export default async function AeronavesPage() {
                     ))}
                   </select>
                 </div>
+                <ClaseCategoriaSelector clases={clases} categorias={categorias} />
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gris-700">

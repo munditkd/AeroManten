@@ -14,19 +14,12 @@ import {
   ESTADO_BADGE_CLASS,
 } from "@/lib/mantenimiento-preventivo";
 import { obtenerEstados } from "@/lib/estados";
+import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
+import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
 
 function toDateInput(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
 }
-
-const TIPOS_ACTIVO_SUGERIDOS = [
-  "Motor",
-  "Hélice",
-  "Transponder",
-  "Tren de aterrizaje",
-  "Batería",
-  "Instrumento",
-];
 
 export default async function AeronaveDetailPage({
   params,
@@ -35,26 +28,31 @@ export default async function AeronaveDetailPage({
 }) {
   const { id } = await params;
 
-  const [aeronave, relacionesMP, estados] = await Promise.all([
-    prisma.aeronave.findUnique({
-      where: { id },
-      include: {
-        activos: { orderBy: { tipo: "asc" } },
-        mantenimientos: {
-          orderBy: { fecha: "desc" },
-          include: { activo: true },
+  const [aeronave, relacionesMP, estados, clasesAeronave, categoriasAeronave, clasesActivo, categoriasActivo] =
+    await Promise.all([
+      prisma.aeronave.findUnique({
+        where: { id },
+        include: {
+          activos: { orderBy: { clase: { nombre: "asc" } }, include: { clase: true } },
+          mantenimientos: {
+            orderBy: { fecha: "desc" },
+            include: { activo: { include: { clase: true } } },
+          },
         },
-      },
-    }),
-    prisma.activoMantenimientoPreventivo.findMany({
-      where: { aeronaveId: id },
-      include: {
-        mantenimientoPreventivo: true,
-        realizaciones: { orderBy: { fecha: "desc" }, take: 1 },
-      },
-    }),
-    obtenerEstados("Aeronave"),
-  ]);
+      }),
+      prisma.activoMantenimientoPreventivo.findMany({
+        where: { aeronaveId: id },
+        include: {
+          mantenimientoPreventivo: true,
+          realizaciones: { orderBy: { fecha: "desc" }, take: 1 },
+        },
+      }),
+      obtenerEstados("Aeronave"),
+      obtenerClases("Aeronave"),
+      obtenerCategoriasDeEntidad("Aeronave"),
+      obtenerClases("Activo"),
+      obtenerCategoriasDeEntidad("Activo"),
+    ]);
 
   if (!aeronave) notFound();
 
@@ -121,6 +119,12 @@ export default async function AeronaveDetailPage({
                 ))}
               </select>
             </div>
+            <ClaseCategoriaSelector
+              clases={clasesAeronave}
+              categorias={categoriasAeronave}
+              claseIdInicial={aeronave.claseId ?? ""}
+              categoriaIdInicial={aeronave.categoriaId ?? ""}
+            />
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gris-700">
@@ -306,7 +310,7 @@ export default async function AeronaveDetailPage({
                     href={`/admin/activos/${activo.id}`}
                     className="font-medium text-celeste-700 hover:underline"
                   >
-                    {activo.tipo}
+                    {activo.clase.nombre}
                   </Link>
                   <p className="text-xs text-gris-500">
                     {[activo.marca, activo.modelo].filter(Boolean).join(" ") ||
@@ -328,23 +332,11 @@ export default async function AeronaveDetailPage({
             </h2>
             <form action={createActivo} className="mt-4 space-y-3">
               <input type="hidden" name="aeronaveId" value={aeronave.id} />
-              <div>
-                <label className="block text-xs font-medium text-gris-700">
-                  Tipo *
-                </label>
-                <input
-                  name="tipo"
-                  required
-                  list="tipos-activo"
-                  placeholder="Motor, hélice, transponder..."
-                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                />
-                <datalist id="tipos-activo">
-                  {TIPOS_ACTIVO_SUGERIDOS.map((tipo) => (
-                    <option key={tipo} value={tipo} />
-                  ))}
-                </datalist>
-              </div>
+              <ClaseCategoriaSelector
+                clases={clasesActivo}
+                categorias={categoriasActivo}
+                claseRequerida
+              />
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gris-700">
@@ -472,7 +464,7 @@ export default async function AeronaveDetailPage({
                       {registro.descripcion}
                       {registro.activo && (
                         <span className="ml-2 rounded-full bg-gris-100 px-2 py-0.5 text-xs text-gris-600">
-                          {registro.activo.tipo}
+                          {registro.activo.clase.nombre}
                         </span>
                       )}
                     </p>
@@ -516,7 +508,7 @@ export default async function AeronaveDetailPage({
                   <option value="">General (toda la aeronave)</option>
                   {aeronave.activos.map((activo) => (
                     <option key={activo.id} value={activo.id}>
-                      {activo.tipo}
+                      {activo.clase.nombre}
                     </option>
                   ))}
                 </select>

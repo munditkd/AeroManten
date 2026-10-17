@@ -7,9 +7,11 @@ import {
   PRIORIDAD_OT_BADGE_CLASS,
 } from "@/lib/ordenes-trabajo";
 import { obtenerEstados, claseBadgeEstado } from "@/lib/estados";
+import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
 import { createOrdenTrabajo } from "./actions";
 import { AeronaveFilter } from "./aeronave-filter";
 import { AeronaveActivoSelector } from "./aeronave-activo-selector";
+import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
 
 export default async function OrdenesTrabajoPage({
   searchParams,
@@ -34,7 +36,7 @@ export default async function OrdenesTrabajoPage({
     };
   }
 
-  const [ordenes, aeronaves, activos, personal, mantenimientosPreventivos, estados] =
+  const [ordenes, aeronaves, activos, personal, mantenimientosPreventivos, estados, clases, categorias] =
     await Promise.all([
       prisma.ordenTrabajo.findMany({
         where,
@@ -43,12 +45,14 @@ export default async function OrdenesTrabajoPage({
       }),
       prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
       prisma.activo.findMany({
-        orderBy: { tipo: "asc" },
-        select: { id: true, tipo: true, codigo: true, aeronaveId: true },
+        orderBy: { clase: { nombre: "asc" } },
+        select: { id: true, clase: { select: { nombre: true } }, codigo: true, aeronaveId: true },
       }),
       prisma.personal.findMany({ orderBy: [{ apellido: "asc" }, { nombre: "asc" }] }),
       prisma.mantenimientoPreventivo.findMany({ orderBy: { codigo: "asc" } }),
       obtenerEstados("OrdenTrabajo"),
+      obtenerClases("OrdenTrabajo"),
+      obtenerCategoriasDeEntidad("OrdenTrabajo"),
     ]);
 
   const pill = (active: boolean) =>
@@ -171,29 +175,7 @@ export default async function OrdenesTrabajoPage({
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gris-700">Tipo</label>
-                  <input
-                    name="tipo"
-                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gris-700">Clase</label>
-                  <input
-                    name="clase"
-                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gris-700">Categoría</label>
-                  <input
-                    name="categoria"
-                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                  />
-                </div>
-              </div>
+              <ClaseCategoriaSelector clases={clases} categorias={categorias} />
 
               <div className="grid grid-cols-2 gap-3">
                 <div>

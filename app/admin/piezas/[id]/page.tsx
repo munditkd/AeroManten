@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { updatePieza, deletePieza } from "../actions";
-import { ClaseCategoriaSelector } from "../clase-categoria-selector";
+import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
 import { ActionForm } from "@/app/_components/action-form";
 import { ConfirmDeleteButton } from "@/app/_components/confirm-delete-button";
+import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
 
 const UNIDADES_MEDIDA_SUGERIDAS = ["Unidad", "Metro", "Litro", "Kilogramo", "Caja", "Par"];
 
@@ -25,8 +26,8 @@ export default async function PiezaDetailPage({
         },
       },
     }),
-    prisma.piezaClase.findMany({ orderBy: { nombre: "asc" } }),
-    prisma.piezaCategoria.findMany({ orderBy: { nombre: "asc" } }),
+    obtenerClases("Pieza"),
+    obtenerCategoriasDeEntidad("Pieza"),
   ]);
 
   if (!pieza) notFound();

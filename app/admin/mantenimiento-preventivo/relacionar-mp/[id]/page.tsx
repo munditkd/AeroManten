@@ -20,7 +20,7 @@ export default async function RelacionMPDetailPage({
   const relacion = await prisma.activoMantenimientoPreventivo.findUnique({
     where: { id },
     include: {
-      activo: { include: { aeronave: true } },
+      activo: { include: { aeronave: true, clase: true } },
       aeronave: true,
       mantenimientoPreventivo: true,
       realizaciones: { orderBy: { fecha: "desc" } },
@@ -58,7 +58,7 @@ export default async function RelacionMPDetailPage({
 
       <h1 className="mt-2 text-2xl font-semibold text-gris-900">
         {relacion.mantenimientoPreventivo.codigo} ·{" "}
-        {esAeronave ? "Aeronave completa" : relacion.activo?.tipo}
+        {esAeronave ? "Aeronave completa" : relacion.activo?.clase.nombre}
       </h1>
       <p className="mt-1 text-sm text-gris-500">
         {esAeronave

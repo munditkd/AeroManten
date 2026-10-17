@@ -53,7 +53,8 @@ export const TABLAS_AUDITABLES: TablaAuditable[] = [
     delegate: "activo",
     campos: [
       { nombre: "codigo", label: "Código" },
-      { nombre: "tipo", label: "Tipo" },
+      { nombre: "claseId", label: "Clase" },
+      { nombre: "categoriaId", label: "Categoría" },
       { nombre: "marca", label: "Marca" },
       { nombre: "modelo", label: "Modelo" },
       { nombre: "numeroSerie", label: "Número de serie" },
@@ -93,9 +94,8 @@ export const TABLAS_AUDITABLES: TablaAuditable[] = [
     delegate: "ordenTrabajo",
     campos: [
       { nombre: "descripcion", label: "Descripción" },
-      { nombre: "tipo", label: "Tipo" },
-      { nombre: "clase", label: "Clase" },
-      { nombre: "categoria", label: "Categoría" },
+      { nombre: "claseId", label: "Clase" },
+      { nombre: "categoriaId", label: "Categoría" },
       { nombre: "fecha", label: "Fecha" },
       { nombre: "estadoId", label: "Estado" },
       { nombre: "departamento", label: "Departamento" },
@@ -186,6 +186,8 @@ export const RESOLVERS_FK: Record<
   { delegate: string; etiqueta: (row: Record<string, unknown>) => string }
 > = {
   estadoId: { delegate: "estado", etiqueta: (r) => String(r.status ?? "") },
+  claseId: { delegate: "clase", etiqueta: (r) => String(r.nombre ?? "") },
+  categoriaId: { delegate: "categoria", etiqueta: (r) => String(r.nombre ?? "") },
   propietarioId: { delegate: "propietario", etiqueta: (r) => String(r.nombre ?? "") },
   aeronaveId: { delegate: "aeronave", etiqueta: (r) => String(r.matricula ?? "") },
   activoId: { delegate: "activo", etiqueta: (r) => `Activo #${r.codigo ?? ""}` },

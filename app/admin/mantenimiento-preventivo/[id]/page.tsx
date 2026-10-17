@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { updateMantenimientoPreventivo, deleteMantenimientoPreventivo } from "../actions";
+import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
+import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
 
 export default async function MantenimientoPreventivoDetailPage({
   params,
@@ -10,9 +12,11 @@ export default async function MantenimientoPreventivoDetailPage({
 }) {
   const { id } = await params;
 
-  const item = await prisma.mantenimientoPreventivo.findUnique({
-    where: { id },
-  });
+  const [item, clases, categorias] = await Promise.all([
+    prisma.mantenimientoPreventivo.findUnique({ where: { id } }),
+    obtenerClases("MantenimientoPreventivo"),
+    obtenerCategoriasDeEntidad("MantenimientoPreventivo"),
+  ]);
 
   if (!item) notFound();
 
@@ -96,6 +100,12 @@ export default async function MantenimientoPreventivoDetailPage({
                 />
               </div>
             </div>
+            <ClaseCategoriaSelector
+              clases={clases}
+              categorias={categorias}
+              claseIdInicial={item.claseId ?? ""}
+              categoriaIdInicial={item.categoriaId ?? ""}
+            />
             <div>
               <label className="block text-xs font-medium text-gris-700">
                 Tarea *
