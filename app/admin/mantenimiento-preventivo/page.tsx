@@ -141,7 +141,7 @@ export default async function MantenimientoPreventivoPage({
 
           <div className="rounded-lg border border-gris-200 bg-white p-6">
             <h2 className="text-sm font-semibold text-gris-900">
-              Nueva tarea
+              Nuevo MP
             </h2>
             <form action={createMantenimientoPreventivo} className="mt-4 space-y-3">
               <div>
@@ -237,7 +237,7 @@ export default async function MantenimientoPreventivoPage({
                 type="submit"
                 className="w-full rounded-md bg-celeste-700 py-2 text-sm font-medium text-white hover:bg-celeste-800"
               >
-                Crear tarea
+                Crear MP
               </button>
             </form>
           </div>
