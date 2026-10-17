@@ -175,7 +175,11 @@ export default async function OrdenesTrabajoPage({
                 />
               </div>
 
-              <ClaseCategoriaSelector clases={clases} categorias={categorias} />
+              <ClaseCategoriaSelector
+                clases={clases}
+                categorias={categorias}
+                claseIdInicial={clases.find((c) => c.nombre === "OT")?.id ?? ""}
+              />
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
