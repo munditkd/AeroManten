@@ -45,6 +45,14 @@ export default async function ImportacionPage({
               <strong className="text-gris-700">Clase</strong> — obligatoria; tiene que coincidir
               con una Clase ya cargada para Activos en Administración &gt; Clases y Categorías.
             </li>
+            <li>
+              <strong className="text-gris-700">Deposito</strong> — obligatorio; tiene que
+              coincidir con un depósito ya cargado en Administración &gt; Depósitos y Ubicaciones.
+            </li>
+            <li>
+              <strong className="text-gris-700">Ubicacion (Pasillo-Estante-Columna-Fila)</strong> —
+              opcional; tiene que coincidir con una ubicación ya cargada dentro de ese depósito.
+            </li>
             <li>Fabricante, Numero de Parte, Numero de Serie — opcionales.</li>
             <li>Fecha de Fabricacion — opcional, formato DD/MM/AAAA.</li>
             <li>Horas TSN / Horas TSO — opcionales, números (pueden tener decimales).</li>

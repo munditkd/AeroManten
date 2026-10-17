@@ -8,6 +8,13 @@ import { Prisma } from "@prisma/client";
 // encabezado (sin mayúsculas/espacios de más).
 const COLUMNAS = [
   { header: "Clase", campo: "claseTexto", requerido: true, tipo: "texto" as const },
+  { header: "Deposito", campo: "depositoTexto", requerido: true, tipo: "texto" as const },
+  {
+    header: "Ubicacion (Pasillo-Estante-Columna-Fila)",
+    campo: "ubicacionTexto",
+    requerido: false,
+    tipo: "texto" as const,
+  },
   { header: "Fabricante", campo: "marca", requerido: false, tipo: "texto" as const },
   { header: "Numero de Parte", campo: "modelo", requerido: false, tipo: "texto" as const },
   { header: "Numero de Serie", campo: "numeroSerie", requerido: false, tipo: "texto" as const },
@@ -47,6 +54,8 @@ export async function generarPlantillaActivos(): Promise<Buffer> {
 
   const filaEjemplo = hoja.addRow([
     "Motor",
+    "GENERAL",
+    "A-1-1-1",
     "Lycoming",
     "O-320",
     "EJEMPLO-001",
@@ -61,7 +70,7 @@ export async function generarPlantillaActivos(): Promise<Buffer> {
     "Operativo",
   ]);
   filaEjemplo.font = { italic: true, color: { argb: "FF888888" } };
-  filaEjemplo.getCell(5).numFmt = "dd/mm/yyyy";
+  filaEjemplo.getCell(7).numFmt = "dd/mm/yyyy";
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
@@ -107,31 +116,40 @@ export async function validarArchivoActivos(
     };
   }
 
-  // Pre-cargo aeronaves, estados y clases existentes para resolver
-  // matrícula/estado/clase por texto, y las combinaciones
-  // marca+modelo+numeroSerie ya usadas, para detectar duplicados contra lo
-  // que ya está en la base.
-  const [aeronaves, estados, clases, activosExistentes] = await Promise.all([
-    prisma.aeronave.findMany({ select: { id: true, matricula: true } }),
-    prisma.estado.findMany({
-      where: { tabla: "Activo", propiedad: "estado" },
-      select: { id: true, status: true },
-    }),
-    prisma.clase.findMany({
-      where: { entidad: "Activo" },
-      select: { id: true, nombre: true },
-    }),
-    prisma.activo.findMany({
-      where: { marca: { not: null }, modelo: { not: null }, numeroSerie: { not: null } },
-      select: { marca: true, modelo: true, numeroSerie: true },
-    }),
-  ]);
+  // Pre-cargo aeronaves, estados, clases y depósitos/ubicaciones existentes
+  // para resolver matrícula/estado/clase/depósito/ubicación por texto, y las
+  // combinaciones marca+modelo+numeroSerie ya usadas, para detectar
+  // duplicados contra lo que ya está en la base.
+  const [aeronaves, estados, clases, depositos, ubicaciones, activosExistentes] =
+    await Promise.all([
+      prisma.aeronave.findMany({ select: { id: true, matricula: true } }),
+      prisma.estado.findMany({
+        where: { tabla: "Activo", propiedad: "estado" },
+        select: { id: true, status: true },
+      }),
+      prisma.clase.findMany({
+        where: { entidad: "Activo" },
+        select: { id: true, nombre: true },
+      }),
+      prisma.deposito.findMany({ select: { id: true, nombre: true } }),
+      prisma.ubicacion.findMany({ select: { id: true, depositoId: true, codigo: true } }),
+      prisma.activo.findMany({
+        where: { marca: { not: null }, modelo: { not: null }, numeroSerie: { not: null } },
+        select: { marca: true, modelo: true, numeroSerie: true },
+      }),
+    ]);
 
   const aeronavePorMatricula = new Map(
     aeronaves.map((a) => [normalizar(a.matricula), a.id])
   );
   const estadoPorTexto = new Map(estados.map((e) => [normalizar(e.status), e.id]));
   const clasePorTexto = new Map(clases.map((c) => [normalizar(c.nombre), c.id]));
+  const depositoPorTexto = new Map(depositos.map((d) => [normalizar(d.nombre), d.id]));
+  // Las Ubicaciones son únicas por depósito, no globalmente: la clave
+  // combina depositoId + código normalizado.
+  const ubicacionPorDepositoYCodigo = new Map(
+    ubicaciones.map((u) => [`${u.depositoId}|${normalizar(u.codigo)}`, u.id])
+  );
   const combinacionesExistentes = new Set(
     activosExistentes.map((a) => `${normalizar(a.marca!)}|${normalizar(a.modelo!)}|${normalizar(a.numeroSerie!)}`)
   );
@@ -168,6 +186,34 @@ export async function validarArchivoActivos(
         );
       } else {
         claseId = id;
+      }
+    }
+
+    const depositoTexto = String(valores.depositoTexto ?? "").trim();
+    let depositoId: string | null = null;
+    if (!depositoTexto) {
+      errroresFila.push("Deposito es obligatorio");
+    } else {
+      const id = depositoPorTexto.get(normalizar(depositoTexto));
+      if (!id) {
+        errroresFila.push(
+          `El depósito "${depositoTexto}" no existe. Cargalo primero en Administración > Depósitos y Ubicaciones.`
+        );
+      } else {
+        depositoId = id;
+      }
+    }
+
+    let ubicacionId: string | null = null;
+    const textoUbicacion = String(valores.ubicacionTexto ?? "").trim();
+    if (textoUbicacion && depositoId) {
+      const id = ubicacionPorDepositoYCodigo.get(`${depositoId}|${normalizar(textoUbicacion)}`);
+      if (!id) {
+        errroresFila.push(
+          `La ubicación "${textoUbicacion}" no existe en el depósito "${depositoTexto}"`
+        );
+      } else {
+        ubicacionId = id;
       }
     }
 
@@ -274,6 +320,8 @@ export async function validarArchivoActivos(
 
     datos.push({
       claseId: claseId!,
+      depositoId: depositoId!,
+      ubicacionId,
       marca,
       modelo,
       numeroSerie,

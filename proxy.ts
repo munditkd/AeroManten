@@ -98,6 +98,7 @@ const withAuth = auth(async (req) => {
     "/admin/auditoria",
     "/admin/importacion",
     "/admin/clases",
+    "/admin/depositos",
   ];
   const isAdminOnlyRoute = ADMIN_ONLY_PREFIXES.some((prefix) =>
     req.nextUrl.pathname.startsWith(prefix)

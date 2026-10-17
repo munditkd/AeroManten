@@ -3,9 +3,11 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { obtenerEstados, claseBadgeEstado } from "@/lib/estados";
 import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
+import { obtenerDepositos, obtenerUbicaciones } from "@/lib/depositos";
 import { createActivo } from "./actions";
 import { MontadosFilter } from "./montados-filter";
 import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
+import { DepositoUbicacionSelector } from "@/app/_components/deposito-ubicacion-selector";
 
 export default async function ActivosPage({
   searchParams,
@@ -21,17 +23,27 @@ export default async function ActivosPage({
     where = aeronaveId ? { aeronaveId } : { aeronaveId: { not: null } };
   }
 
-  const [activos, aeronaves, estados, clases, categorias] = await Promise.all([
-    prisma.activo.findMany({
-      where,
-      orderBy: [{ aeronave: { matricula: "asc" } }, { clase: { nombre: "asc" } }],
-      include: { aeronave: true, estado: true, clase: true, categoria: true },
-    }),
-    prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
-    obtenerEstados("Activo"),
-    obtenerClases("Activo"),
-    obtenerCategoriasDeEntidad("Activo"),
-  ]);
+  const [activos, aeronaves, estados, clases, categorias, depositos, ubicaciones] =
+    await Promise.all([
+      prisma.activo.findMany({
+        where,
+        orderBy: [{ aeronave: { matricula: "asc" } }, { clase: { nombre: "asc" } }],
+        include: {
+          aeronave: true,
+          estado: true,
+          clase: true,
+          categoria: true,
+          deposito: true,
+          ubicacion: true,
+        },
+      }),
+      prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
+      obtenerEstados("Activo"),
+      obtenerClases("Activo"),
+      obtenerCategoriasDeEntidad("Activo"),
+      obtenerDepositos(),
+      obtenerUbicaciones(),
+    ]);
 
   const aeronaveSeleccionada = aeronaveId
     ? aeronaves.find((aeronave) => aeronave.id === aeronaveId)
@@ -88,6 +100,8 @@ export default async function ActivosPage({
                   <th className="px-4 py-3">Código</th>
                   <th className="px-4 py-3">Clase</th>
                   <th className="px-4 py-3">Categoría</th>
+                  <th className="px-4 py-3">Depósito</th>
+                  <th className="px-4 py-3">Ubicación</th>
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3">Fabricante / N° de Parte</th>
                   <th className="px-4 py-3">N° de serie</th>
@@ -114,6 +128,12 @@ export default async function ActivosPage({
                     </td>
                     <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
                       {activo.categoria?.nombre ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
+                      {activo.deposito.nombre}
+                    </td>
+                    <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
+                      {activo.ubicacion?.codigo ?? "—"}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {activo.estado ? (
@@ -166,7 +186,7 @@ export default async function ActivosPage({
                 {activos.length === 0 && (
                   <tr>
                     <td
-                      colSpan={11}
+                      colSpan={13}
                       className="px-4 py-6 text-center text-gris-500"
                     >
                       {vista === "deposito"
@@ -192,6 +212,15 @@ export default async function ActivosPage({
                 Primero tenés que{" "}
                 <Link href="/admin/clases" className="text-celeste-700 hover:underline">
                   crear una Clase para Activos
+                </Link>
+                .
+              </p>
+            )}
+            {depositos.length === 0 && (
+              <p className="mt-4 text-sm text-gris-500">
+                Primero tenés que{" "}
+                <Link href="/admin/depositos" className="text-celeste-700 hover:underline">
+                  crear un Depósito
                 </Link>
                 .
               </p>
@@ -235,6 +264,7 @@ export default async function ActivosPage({
                   </select>
                 </div>
                 <ClaseCategoriaSelector clases={clases} categorias={categorias} claseRequerida />
+                <DepositoUbicacionSelector depositos={depositos} ubicaciones={ubicaciones} />
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gris-700">

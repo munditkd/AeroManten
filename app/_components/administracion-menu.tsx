@@ -11,6 +11,7 @@ const ITEMS = [
   { href: "/admin/auditoria", label: "Auditoría" },
   { href: "/admin/importacion", label: "Importación" },
   { href: "/admin/clases", label: "Clases y Categorías" },
+  { href: "/admin/depositos", label: "Depósitos y Ubicaciones" },
 ];
 
 export function AdministracionMenu() {

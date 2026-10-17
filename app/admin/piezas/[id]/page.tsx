@@ -3,9 +3,11 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { updatePieza, deletePieza } from "../actions";
 import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
+import { DepositoUbicacionSelector } from "@/app/_components/deposito-ubicacion-selector";
 import { ActionForm } from "@/app/_components/action-form";
 import { ConfirmDeleteButton } from "@/app/_components/confirm-delete-button";
 import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
+import { obtenerDepositos, obtenerUbicaciones } from "@/lib/depositos";
 
 const UNIDADES_MEDIDA_SUGERIDAS = ["Unidad", "Metro", "Litro", "Kilogramo", "Caja", "Par"];
 
@@ -16,7 +18,7 @@ export default async function PiezaDetailPage({
 }) {
   const { id } = await params;
 
-  const [pieza, clases, categorias] = await Promise.all([
+  const [pieza, clases, categorias, depositos, ubicaciones] = await Promise.all([
     prisma.pieza.findUnique({
       where: { id },
       include: {
@@ -28,6 +30,8 @@ export default async function PiezaDetailPage({
     }),
     obtenerClases("Pieza"),
     obtenerCategoriasDeEntidad("Pieza"),
+    obtenerDepositos(),
+    obtenerUbicaciones(),
   ]);
 
   if (!pieza) notFound();
@@ -101,6 +105,12 @@ export default async function PiezaDetailPage({
               categorias={categorias}
               claseIdInicial={pieza.claseId ?? ""}
               categoriaIdInicial={pieza.categoriaId ?? ""}
+            />
+            <DepositoUbicacionSelector
+              depositos={depositos}
+              ubicaciones={ubicaciones}
+              depositoIdInicial={pieza.depositoId}
+              ubicacionIdInicial={pieza.ubicacionId ?? ""}
             />
 
             <button

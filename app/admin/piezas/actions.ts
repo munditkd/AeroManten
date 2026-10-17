@@ -34,6 +34,7 @@ function piezaData(formData: FormData) {
     descripcion: str(formData, "descripcion") ?? null,
     claseId: optionalRelationId(formData, "claseId"),
     categoriaId: optionalRelationId(formData, "categoriaId"),
+    ubicacionId: optionalRelationId(formData, "ubicacionId"),
   };
 }
 
@@ -46,14 +47,19 @@ export async function createPieza(
 
     const nombre = str(formData, "nombre");
     const unidadMedida = str(formData, "unidadMedida");
+    const depositoId = str(formData, "depositoId");
     if (!nombre || !unidadMedida) {
       throw new Error("Nombre y unidad de medida son obligatorios");
+    }
+    if (!depositoId) {
+      throw new Error("El depósito es obligatorio");
     }
 
     await prisma.pieza.create({
       data: {
         nombre,
         unidadMedida,
+        depositoId,
         stock: num(formData, "stock") ?? 0,
         ...piezaData(formData),
       },
@@ -73,8 +79,12 @@ export async function updatePieza(
 
     const nombre = str(formData, "nombre");
     const unidadMedida = str(formData, "unidadMedida");
+    const depositoId = str(formData, "depositoId");
     if (!nombre || !unidadMedida) {
       throw new Error("Nombre y unidad de medida son obligatorios");
+    }
+    if (!depositoId) {
+      throw new Error("El depósito es obligatorio");
     }
 
     await prisma.pieza.update({
@@ -82,6 +92,7 @@ export async function updatePieza(
       data: {
         nombre,
         unidadMedida,
+        depositoId,
         stock: num(formData, "stock") ?? 0,
         ...piezaData(formData),
       },

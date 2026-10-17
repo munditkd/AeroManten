@@ -48,6 +48,7 @@ function activoData(formData: FormData) {
     mesesTSO: num(formData, "mesesTSO"),
     estadoId: optionalRelationId(formData, "estadoId"),
     categoriaId: optionalRelationId(formData, "categoriaId"),
+    ubicacionId: optionalRelationId(formData, "ubicacionId"),
   };
 }
 
@@ -58,11 +59,16 @@ export async function createActivo(formData: FormData) {
   if (!claseId) {
     throw new Error("La clase es obligatoria");
   }
+  const depositoId = str(formData, "depositoId");
+  if (!depositoId) {
+    throw new Error("El depósito es obligatorio");
+  }
   const aeronaveId = optionalRelationId(formData, "aeronaveId");
 
   await prisma.activo.create({
     data: {
       claseId,
+      depositoId,
       aeronaveId,
       ...activoData(formData),
     },
@@ -77,6 +83,8 @@ export async function updateActivo(id: string, formData: FormData) {
 
   const claseId = str(formData, "claseId");
   if (!claseId) throw new Error("La clase es obligatoria");
+  const depositoId = str(formData, "depositoId");
+  if (!depositoId) throw new Error("El depósito es obligatorio");
 
   const before = await prisma.activo.findUnique({
     where: { id },
@@ -87,6 +95,7 @@ export async function updateActivo(id: string, formData: FormData) {
     where: { id },
     data: {
       claseId,
+      depositoId,
       aeronaveId: optionalRelationId(formData, "aeronaveId"),
       ...activoData(formData),
     },

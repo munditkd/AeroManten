@@ -10,7 +10,9 @@ import {
 } from "@/lib/mantenimiento-preventivo";
 import { obtenerEstados } from "@/lib/estados";
 import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
+import { obtenerDepositos, obtenerUbicaciones } from "@/lib/depositos";
 import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
+import { DepositoUbicacionSelector } from "@/app/_components/deposito-ubicacion-selector";
 
 function toDateInput(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
@@ -23,28 +25,33 @@ export default async function ActivoDetailPage({
 }) {
   const { id } = await params;
 
-  const [activo, aeronaves, relacionesMP, estados, clases, categorias] = await Promise.all([
-    prisma.activo.findUnique({
-      where: { id },
-      include: {
-        aeronave: true,
-        clase: true,
-        categoria: true,
-        mantenimientos: { orderBy: { fecha: "desc" } },
-      },
-    }),
-    prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
-    prisma.activoMantenimientoPreventivo.findMany({
-      where: { activoId: id },
-      include: {
-        mantenimientoPreventivo: true,
-        realizaciones: { orderBy: { fecha: "desc" }, take: 1 },
-      },
-    }),
-    obtenerEstados("Activo"),
-    obtenerClases("Activo"),
-    obtenerCategoriasDeEntidad("Activo"),
-  ]);
+  const [activo, aeronaves, relacionesMP, estados, clases, categorias, depositos, ubicaciones] =
+    await Promise.all([
+      prisma.activo.findUnique({
+        where: { id },
+        include: {
+          aeronave: true,
+          clase: true,
+          categoria: true,
+          deposito: true,
+          ubicacion: true,
+          mantenimientos: { orderBy: { fecha: "desc" } },
+        },
+      }),
+      prisma.aeronave.findMany({ orderBy: { matricula: "asc" } }),
+      prisma.activoMantenimientoPreventivo.findMany({
+        where: { activoId: id },
+        include: {
+          mantenimientoPreventivo: true,
+          realizaciones: { orderBy: { fecha: "desc" }, take: 1 },
+        },
+      }),
+      obtenerEstados("Activo"),
+      obtenerClases("Activo"),
+      obtenerCategoriasDeEntidad("Activo"),
+      obtenerDepositos(),
+      obtenerUbicaciones(),
+    ]);
 
   if (!activo) notFound();
 
@@ -136,6 +143,12 @@ export default async function ActivoDetailPage({
               claseIdInicial={activo.claseId}
               categoriaIdInicial={activo.categoriaId ?? ""}
               claseRequerida
+            />
+            <DepositoUbicacionSelector
+              depositos={depositos}
+              ubicaciones={ubicaciones}
+              depositoIdInicial={activo.depositoId}
+              ubicacionIdInicial={activo.ubicacionId ?? ""}
             />
             <div className="grid grid-cols-2 gap-3">
               <div>

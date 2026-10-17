@@ -15,7 +15,9 @@ import {
 } from "@/lib/mantenimiento-preventivo";
 import { obtenerEstados } from "@/lib/estados";
 import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
+import { obtenerDepositos, obtenerUbicaciones } from "@/lib/depositos";
 import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
+import { DepositoUbicacionSelector } from "@/app/_components/deposito-ubicacion-selector";
 
 function toDateInput(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
@@ -28,31 +30,42 @@ export default async function AeronaveDetailPage({
 }) {
   const { id } = await params;
 
-  const [aeronave, relacionesMP, estados, clasesAeronave, categoriasAeronave, clasesActivo, categoriasActivo] =
-    await Promise.all([
-      prisma.aeronave.findUnique({
-        where: { id },
-        include: {
-          activos: { orderBy: { clase: { nombre: "asc" } }, include: { clase: true } },
-          mantenimientos: {
-            orderBy: { fecha: "desc" },
-            include: { activo: { include: { clase: true } } },
-          },
+  const [
+    aeronave,
+    relacionesMP,
+    estados,
+    clasesAeronave,
+    categoriasAeronave,
+    clasesActivo,
+    categoriasActivo,
+    depositos,
+    ubicaciones,
+  ] = await Promise.all([
+    prisma.aeronave.findUnique({
+      where: { id },
+      include: {
+        activos: { orderBy: { clase: { nombre: "asc" } }, include: { clase: true } },
+        mantenimientos: {
+          orderBy: { fecha: "desc" },
+          include: { activo: { include: { clase: true } } },
         },
-      }),
-      prisma.activoMantenimientoPreventivo.findMany({
-        where: { aeronaveId: id },
-        include: {
-          mantenimientoPreventivo: true,
-          realizaciones: { orderBy: { fecha: "desc" }, take: 1 },
-        },
-      }),
-      obtenerEstados("Aeronave"),
-      obtenerClases("Aeronave"),
-      obtenerCategoriasDeEntidad("Aeronave"),
-      obtenerClases("Activo"),
-      obtenerCategoriasDeEntidad("Activo"),
-    ]);
+      },
+    }),
+    prisma.activoMantenimientoPreventivo.findMany({
+      where: { aeronaveId: id },
+      include: {
+        mantenimientoPreventivo: true,
+        realizaciones: { orderBy: { fecha: "desc" }, take: 1 },
+      },
+    }),
+    obtenerEstados("Aeronave"),
+    obtenerClases("Aeronave"),
+    obtenerCategoriasDeEntidad("Aeronave"),
+    obtenerClases("Activo"),
+    obtenerCategoriasDeEntidad("Activo"),
+    obtenerDepositos(),
+    obtenerUbicaciones(),
+  ]);
 
   if (!aeronave) notFound();
 
@@ -337,6 +350,7 @@ export default async function AeronaveDetailPage({
                 categorias={categoriasActivo}
                 claseRequerida
               />
+              <DepositoUbicacionSelector depositos={depositos} ubicaciones={ubicaciones} />
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gris-700">

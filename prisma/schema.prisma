@@ -180,6 +180,9 @@ model Activo {
   // Clase es obligatoria (reemplaza al viejo campo de texto libre "Tipo").
   claseId          String
   categoriaId      String?
+  // Depósito obligatorio. Ubicación dentro del depósito, opcional.
+  depositoId       String
+  ubicacionId      String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -187,6 +190,8 @@ model Activo {
   estado                    Estado?                         @relation(fields: [estadoId], references: [id])
   clase                     Clase                           @relation(fields: [claseId], references: [id])
   categoria                 Categoria?                      @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  deposito                  Deposito                        @relation(fields: [depositoId], references: [id])
+  ubicacion                 Ubicacion?                      @relation(fields: [ubicacionId], references: [id], onDelete: SetNull)
   mantenimientos            RegistroMantenimiento[]
   mantenimientosPreventivos ActivoMantenimientoPreventivo[]
   ordenesTrabajo            OrdenTrabajo[]
@@ -489,14 +494,53 @@ model Pieza {
   // Null = todavía sin clasificar (clase/categoría se definen más adelante).
   claseId      String?
   categoriaId  String?
+  // Depósito obligatorio; ubicación dentro del depósito, opcional.
+  depositoId   String
+  ubicacionId  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   clase     Clase?                   @relation(fields: [claseId], references: [id], onDelete: SetNull)
   categoria Categoria?               @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  deposito  Deposito                 @relation(fields: [depositoId], references: [id])
+  ubicacion Ubicacion?               @relation(fields: [ubicacionId], references: [id], onDelete: SetNull)
   usos      OrdenTrabajoTareaPieza[]
 
   @@map("piezas")
+}
+
+// Depósitos físicos donde se guardan Activos y Piezas (puede haber uno solo
+// o varios). Cada uno tiene sus propias Ubicaciones (pasillo/estante/
+// columna/fila).
+model Deposito {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ubicaciones Ubicacion[]
+  activos     Activo[]
+  piezas      Pieza[]
+
+  @@map("depositos")
+}
+
+// Ubicación puntual dentro de un Depósito. Pasillo/Estante/Columna/Fila se
+// combinan en un solo campo ("codigo"), separados por guion (ej. "A-3-2-5"),
+// en vez de guardarse en columnas separadas.
+model Ubicacion {
+  id         String   @id @default(cuid())
+  depositoId String
+  codigo     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  deposito Deposito @relation(fields: [depositoId], references: [id], onDelete: Cascade)
+  activos  Activo[]
+  piezas   Pieza[]
+
+  @@unique([depositoId, codigo])
+  @@map("ubicaciones")
 }
 
 // Consumo de una Pieza registrado en una Tarea puntual de OT. Al crear una

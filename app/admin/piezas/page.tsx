@@ -2,8 +2,10 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createPieza } from "./actions";
 import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
+import { DepositoUbicacionSelector } from "@/app/_components/deposito-ubicacion-selector";
 import { ActionForm } from "@/app/_components/action-form";
 import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
+import { obtenerDepositos, obtenerUbicaciones } from "@/lib/depositos";
 
 const UNIDADES_MEDIDA_SUGERIDAS = ["Unidad", "Metro", "Litro", "Kilogramo", "Caja", "Par"];
 
@@ -14,14 +16,16 @@ export default async function PiezasPage({
 }) {
   const { claseId } = await searchParams;
 
-  const [piezas, clases, categorias] = await Promise.all([
+  const [piezas, clases, categorias, depositos, ubicaciones] = await Promise.all([
     prisma.pieza.findMany({
       where: claseId ? { claseId } : {},
       orderBy: { nombre: "asc" },
-      include: { clase: true, categoria: true },
+      include: { clase: true, categoria: true, deposito: true, ubicacion: true },
     }),
     obtenerClases("Pieza"),
     obtenerCategoriasDeEntidad("Pieza"),
+    obtenerDepositos(),
+    obtenerUbicaciones(),
   ]);
 
   const pill = (active: boolean) =>
@@ -64,6 +68,8 @@ export default async function PiezasPage({
                   <th className="px-4 py-3">Nombre</th>
                   <th className="px-4 py-3">Clase</th>
                   <th className="px-4 py-3">Categoría</th>
+                  <th className="px-4 py-3">Depósito</th>
+                  <th className="px-4 py-3">Ubicación</th>
                   <th className="px-4 py-3">Unidad</th>
                   <th className="px-4 py-3">Stock</th>
                 </tr>
@@ -87,6 +93,12 @@ export default async function PiezasPage({
                       {pieza.categoria?.nombre ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
+                      {pieza.deposito.nombre}
+                    </td>
+                    <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
+                      {pieza.ubicacion?.codigo ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
                       {pieza.unidadMedida}
                     </td>
                     <td className="px-4 py-3 text-gris-600 whitespace-nowrap">{pieza.stock}</td>
@@ -94,7 +106,7 @@ export default async function PiezasPage({
                 ))}
                 {piezas.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-gris-500">
+                    <td colSpan={8} className="px-4 py-6 text-center text-gris-500">
                       {claseId ? "No hay piezas con esa clase." : "Todavía no hay piezas cargadas."}
                     </td>
                   </tr>
@@ -107,6 +119,15 @@ export default async function PiezasPage({
         <div>
           <div className="rounded-lg border border-gris-200 bg-white p-6">
             <h2 className="text-sm font-semibold text-gris-900">Nueva pieza</h2>
+            {depositos.length === 0 && (
+              <p className="mt-4 text-sm text-gris-500">
+                Primero tenés que{" "}
+                <Link href="/admin/depositos" className="text-celeste-700 hover:underline">
+                  crear un Depósito
+                </Link>
+                .
+              </p>
+            )}
             <ActionForm action={createPieza} className="mt-4 space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gris-700">Nombre *</label>
@@ -156,6 +177,7 @@ export default async function PiezasPage({
               </div>
 
               <ClaseCategoriaSelector clases={clases} categorias={categorias} />
+              <DepositoUbicacionSelector depositos={depositos} ubicaciones={ubicaciones} />
 
               <button
                 type="submit"
