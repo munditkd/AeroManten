@@ -13,8 +13,11 @@ import {
   createTarea,
   updateTarea,
   deleteTarea,
+  addTareaPieza,
+  deleteTareaPieza,
 } from "../actions";
 import { ActionForm } from "@/app/_components/action-form";
+import { ConfirmDeleteButton } from "@/app/_components/confirm-delete-button";
 
 function toDateInput(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
@@ -27,14 +30,18 @@ export default async function OrdenTrabajoDetailPage({
 }) {
   const { id } = await params;
 
-  const [ot, aeronaves, activos, personal, mantenimientosPreventivos, estados, estadosTarea] =
+  const [ot, aeronaves, activos, personal, mantenimientosPreventivos, estados, estadosTarea, piezas] =
     await Promise.all([
       prisma.ordenTrabajo.findUnique({
         where: { id },
         include: {
           tareas: {
             orderBy: { createdAt: "asc" },
-            include: { estado: true, personal: true },
+            include: {
+              estado: true,
+              personal: true,
+              piezas: { orderBy: { createdAt: "asc" }, include: { pieza: true } },
+            },
           },
           originador: true,
           estado: true,
@@ -46,6 +53,7 @@ export default async function OrdenTrabajoDetailPage({
       prisma.mantenimientoPreventivo.findMany({ orderBy: { codigo: "asc" } }),
       obtenerEstados("OrdenTrabajo"),
       obtenerEstados("OrdenTrabajoTarea"),
+      prisma.pieza.findMany({ orderBy: { nombre: "asc" } }),
     ]);
 
   if (!ot) notFound();
@@ -506,6 +514,87 @@ export default async function OrdenTrabajoDetailPage({
                           Eliminar tarea
                         </button>
                       </ActionForm>
+
+                      <div className="mt-4 border-t border-gris-100 pt-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gris-700">
+                          Piezas utilizadas
+                        </p>
+                        <ul className="mt-2 divide-y divide-gris-100">
+                          {tarea.piezas.map((uso) => {
+                            const deleteTareaPiezaWithId = deleteTareaPieza.bind(
+                              null,
+                              ot.id,
+                              uso.id
+                            );
+                            return (
+                              <li
+                                key={uso.id}
+                                className="flex items-center justify-between py-2 text-sm"
+                              >
+                                <span className="text-gris-700">
+                                  {uso.pieza.nombre} — {uso.cantidad} {uso.pieza.unidadMedida}
+                                </span>
+                                <ConfirmDeleteButton
+                                  action={deleteTareaPiezaWithId}
+                                  mensaje={`¿Quitar "${uso.pieza.nombre}" de esta tarea? Se repone el stock.`}
+                                  className="text-xs font-medium text-red-500 hover:underline"
+                                >
+                                  Quitar
+                                </ConfirmDeleteButton>
+                              </li>
+                            );
+                          })}
+                          {tarea.piezas.length === 0 && (
+                            <li className="py-2 text-sm text-gris-500">
+                              Todavía no se usaron piezas en esta tarea.
+                            </li>
+                          )}
+                        </ul>
+
+                        <ActionForm
+                          action={addTareaPieza.bind(null, ot.id, tarea.id)}
+                          className="mt-3 flex items-end gap-2"
+                        >
+                          <div className="flex-1">
+                            <label className="block text-xs font-medium text-gris-700">
+                              Pieza
+                            </label>
+                            <select
+                              name="piezaId"
+                              defaultValue=""
+                              required
+                              className="mt-1 w-full rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
+                            >
+                              <option value="" disabled>
+                                Elegí una pieza
+                              </option>
+                              {piezas.map((pieza) => (
+                                <option key={pieza.id} value={pieza.id}>
+                                  {pieza.nombre} (stock: {pieza.stock} {pieza.unidadMedida})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="w-24">
+                            <label className="block text-xs font-medium text-gris-700">
+                              Cantidad
+                            </label>
+                            <input
+                              name="cantidad"
+                              type="number"
+                              step="0.01"
+                              required
+                              className="mt-1 w-full rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            className="rounded-md border border-celeste-700 px-3 py-1.5 text-xs font-medium text-celeste-700 hover:bg-celeste-50"
+                          >
+                            Agregar
+                          </button>
+                        </ActionForm>
+                      </div>
                     </div>
                   </details>
                 );

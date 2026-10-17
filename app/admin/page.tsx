@@ -5,13 +5,14 @@ import { prisma } from "@/lib/prisma";
 export default async function AdminPage() {
   const session = await auth();
 
-  const [propietarios, aeronaves, activos, mantenimientosPreventivos, ordenesTrabajo] =
+  const [propietarios, aeronaves, activos, mantenimientosPreventivos, ordenesTrabajo, piezas] =
     await Promise.all([
       prisma.propietario.count(),
       prisma.aeronave.count(),
       prisma.activo.count(),
       prisma.mantenimientoPreventivo.count(),
       prisma.ordenTrabajo.count(),
+      prisma.pieza.count(),
     ]);
 
   return (
@@ -84,6 +85,18 @@ export default async function AdminPage() {
             className="mt-4 inline-block rounded-md border border-celeste-700 px-4 py-2 text-center text-sm font-medium text-celeste-700 hover:bg-celeste-50"
           >
             Ver OT
+          </Link>
+        </div>
+        <div className="flex flex-col rounded-lg border border-gris-200 bg-white p-6">
+          <p className="text-sm font-medium text-gris-500">Piezas</p>
+          <p className="mt-1 text-3xl font-semibold text-celeste-800">
+            {piezas}
+          </p>
+          <Link
+            href="/admin/piezas"
+            className="mt-4 inline-block rounded-md border border-celeste-700 px-4 py-2 text-center text-sm font-medium text-celeste-700 hover:bg-celeste-50"
+          >
+            Ver piezas
           </Link>
         </div>
       </div>

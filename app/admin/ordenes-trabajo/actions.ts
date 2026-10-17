@@ -226,3 +226,65 @@ export async function deleteTarea(
     revalidatePath(`/admin/ordenes-trabajo/${ordenTrabajoId}`);
   });
 }
+
+// Registra el consumo de una Pieza en una Tarea: descuenta "cantidad" del
+// stock de la Pieza y la fila queda como historial de uso (ver
+// app/admin/piezas/[id]/page.tsx). Todo dentro de una transacción para que
+// el descuento de stock y el alta del uso queden siempre consistentes.
+export async function addTareaPieza(
+  ordenTrabajoId: string,
+  tareaId: string,
+  _prevState: EstadoAccion,
+  formData: FormData
+): Promise<EstadoAccion> {
+  return ejecutarAccion(async () => {
+    await verificarPermiso("insertar");
+
+    const piezaId = str(formData, "piezaId");
+    const cantidad = num(formData, "cantidad");
+    if (!piezaId || cantidad === undefined || cantidad <= 0) {
+      throw new Error("Elegí una pieza y una cantidad mayor a cero");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const pieza = await tx.pieza.findUniqueOrThrow({ where: { id: piezaId } });
+      if (pieza.stock < cantidad) {
+        throw new Error(
+          `Stock insuficiente de "${pieza.nombre}": quedan ${pieza.stock} ${pieza.unidadMedida}.`
+        );
+      }
+      await tx.pieza.update({
+        where: { id: piezaId },
+        data: { stock: { decrement: cantidad } },
+      });
+      await tx.ordenTrabajoTareaPieza.create({
+        data: { ordenTrabajoTareaId: tareaId, piezaId, cantidad },
+      });
+    });
+
+    revalidatePath(`/admin/ordenes-trabajo/${ordenTrabajoId}`);
+    revalidatePath("/admin/piezas");
+  });
+}
+
+// Repone el stock descontado al borrar un uso de Pieza registrado en una Tarea.
+export async function deleteTareaPieza(
+  ordenTrabajoId: string,
+  usoId: string
+): Promise<EstadoAccion> {
+  return ejecutarAccion(async () => {
+    await verificarPermiso("borrar");
+
+    await prisma.$transaction(async (tx) => {
+      const uso = await tx.ordenTrabajoTareaPieza.findUniqueOrThrow({ where: { id: usoId } });
+      await tx.pieza.update({
+        where: { id: uso.piezaId },
+        data: { stock: { increment: uso.cantidad } },
+      });
+      await tx.ordenTrabajoTareaPieza.delete({ where: { id: usoId } });
+    });
+
+    revalidatePath(`/admin/ordenes-trabajo/${ordenTrabajoId}`);
+    revalidatePath("/admin/piezas");
+  });
+}

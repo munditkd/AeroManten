@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/admin/estados", label: "Estados" },
   { href: "/admin/auditoria", label: "Auditoría" },
   { href: "/admin/importacion", label: "Importación" },
+  { href: "/admin/piezas/clases", label: "Clases y Categorías de Piezas" },
 ];
 
 export function AdministracionMenu() {

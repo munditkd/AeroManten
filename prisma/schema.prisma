@@ -413,11 +413,79 @@ model OrdenTrabajoTarea {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  ordenTrabajo OrdenTrabajo @relation(fields: [ordenTrabajoId], references: [id], onDelete: Cascade)
-  estado       Estado       @relation(fields: [estadoId], references: [id])
-  personal     Personal?    @relation(fields: [personalId], references: [id], onDelete: SetNull)
+  ordenTrabajo OrdenTrabajo             @relation(fields: [ordenTrabajoId], references: [id], onDelete: Cascade)
+  estado       Estado                   @relation(fields: [estadoId], references: [id])
+  personal     Personal?                @relation(fields: [personalId], references: [id], onDelete: SetNull)
+  piezas       OrdenTrabajoTareaPieza[]
 
   @@map("ordenes_trabajo_tareas")
+}
+
+// Piezas sin número de serie usadas como insumo en mantenimiento (caños,
+// aceite, grasa, etc.), con unidad de medida propia y stock descontable al
+// registrarse su uso en una Tarea de OT (ver OrdenTrabajoTareaPieza). Clase y
+// Categoría son un catálogo administrable (ADMIN) para agruparlas; Categoría
+// siempre pertenece a una Clase.
+model PiezaClase {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categorias PiezaCategoria[]
+  piezas     Pieza[]
+
+  @@map("piezas_clases")
+}
+
+model PiezaCategoria {
+  id        String   @id @default(cuid())
+  claseId   String
+  nombre    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clase  PiezaClase @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  piezas Pieza[]
+
+  @@unique([claseId, nombre])
+  @@map("piezas_categorias")
+}
+
+model Pieza {
+  id           String   @id @default(cuid())
+  codigo       Int      @unique @default(autoincrement())
+  nombre       String
+  descripcion  String?
+  unidadMedida String
+  stock        Float    @default(0)
+  // Null = todavía sin clasificar (clase/categoría se definen más adelante).
+  claseId      String?
+  categoriaId  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  clase     PiezaClase?              @relation(fields: [claseId], references: [id], onDelete: SetNull)
+  categoria PiezaCategoria?          @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  usos      OrdenTrabajoTareaPieza[]
+
+  @@map("piezas")
+}
+
+// Consumo de una Pieza registrado en una Tarea puntual de OT. Al crear una
+// fila se descuenta "cantidad" del stock de la Pieza; al borrarla se repone
+// (ver addTareaPieza/deleteTareaPieza en app/admin/ordenes-trabajo/actions.ts).
+model OrdenTrabajoTareaPieza {
+  id                  String   @id @default(cuid())
+  ordenTrabajoTareaId String
+  piezaId             String
+  cantidad            Float
+  createdAt           DateTime @default(now())
+
+  tarea OrdenTrabajoTarea @relation(fields: [ordenTrabajoTareaId], references: [id], onDelete: Cascade)
+  pieza Pieza             @relation(fields: [piezaId], references: [id])
+
+  @@map("ordenes_trabajo_tareas_piezas")
 }
 
 // Bitácora de vuelo. Se carga desde la pantalla "Carga de Vuelos", que

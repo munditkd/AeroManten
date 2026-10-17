@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/admin/vuelos", label: "Carga de Vuelos" },
   { href: "/admin/mantenimiento-preventivo", label: "Mantenimiento Preventivo" },
   { href: "/admin/ordenes-trabajo", label: "Órdenes de Trabajo" },
+  { href: "/admin/piezas", label: "Piezas" },
 ];
 
 export function OperacionesMenu() {
