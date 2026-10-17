@@ -7,7 +7,7 @@ import { obtenerDepositos, obtenerUbicaciones } from "@/lib/depositos";
 import { createActivo } from "./actions";
 import { MontadosFilter } from "./montados-filter";
 import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
-import { DepositoUbicacionSelector } from "@/app/_components/deposito-ubicacion-selector";
+import { AeronaveDepositoSelector } from "./aeronave-deposito-selector";
 
 export default async function ActivosPage({
   searchParams,
@@ -130,7 +130,7 @@ export default async function ActivosPage({
                       {activo.categoria?.nombre ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
-                      {activo.deposito.nombre}
+                      {activo.deposito?.nombre ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
                       {activo.ubicacion?.codigo ?? "—"}
@@ -228,26 +228,6 @@ export default async function ActivosPage({
             <form action={createActivo} className="mt-4 space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-gris-700">
-                    Aeronave
-                  </label>
-                  <select
-                    name="aeronaveId"
-                    defaultValue=""
-                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                  >
-                    <option value="">Sin aeronave (en depósito)</option>
-                    {aeronaves.map((aeronave) => (
-                      <option key={aeronave.id} value={aeronave.id}>
-                        {aeronave.matricula}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-xs text-gris-400">
-                    Dejalo vacío si el componente está en depósito como repuesto.
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gris-700">
                     Estado
                   </label>
                   <select
@@ -264,7 +244,11 @@ export default async function ActivosPage({
                   </select>
                 </div>
                 <ClaseCategoriaSelector clases={clases} categorias={categorias} claseRequerida />
-                <DepositoUbicacionSelector depositos={depositos} ubicaciones={ubicaciones} />
+                <AeronaveDepositoSelector
+                  aeronaves={aeronaves}
+                  depositos={depositos}
+                  ubicaciones={ubicaciones}
+                />
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gris-700">

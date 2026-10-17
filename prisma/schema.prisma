@@ -180,8 +180,11 @@ model Activo {
   // Clase es obligatoria (reemplaza al viejo campo de texto libre "Tipo").
   claseId          String
   categoriaId      String?
-  // Depósito obligatorio. Ubicación dentro del depósito, opcional.
-  depositoId       String
+  // Depósito obligatorio SOLO si el activo está en depósito (aeronaveId
+  // null); si está montado en una aeronave, queda null (no corresponde
+  // depósito/ubicación — ver createActivo/updateActivo). Ubicación dentro
+  // del depósito, siempre opcional.
+  depositoId       String?
   ubicacionId      String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -190,7 +193,7 @@ model Activo {
   estado                    Estado?                         @relation(fields: [estadoId], references: [id])
   clase                     Clase                           @relation(fields: [claseId], references: [id])
   categoria                 Categoria?                      @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
-  deposito                  Deposito                        @relation(fields: [depositoId], references: [id])
+  deposito                  Deposito?                       @relation(fields: [depositoId], references: [id])
   ubicacion                 Ubicacion?                      @relation(fields: [ubicacionId], references: [id], onDelete: SetNull)
   mantenimientos            RegistroMantenimiento[]
   mantenimientosPreventivos ActivoMantenimientoPreventivo[]

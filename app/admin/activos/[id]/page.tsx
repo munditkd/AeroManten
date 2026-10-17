@@ -12,7 +12,7 @@ import { obtenerEstados } from "@/lib/estados";
 import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
 import { obtenerDepositos, obtenerUbicaciones } from "@/lib/depositos";
 import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
-import { DepositoUbicacionSelector } from "@/app/_components/deposito-ubicacion-selector";
+import { AeronaveDepositoSelector } from "../aeronave-deposito-selector";
 
 function toDateInput(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
@@ -102,26 +102,6 @@ export default async function ActivoDetailPage({
           <form action={updateActivoWithId} className="mt-4 space-y-3">
             <div>
               <label className="block text-xs font-medium text-gris-700">
-                Aeronave
-              </label>
-              <select
-                name="aeronaveId"
-                defaultValue={activo.aeronaveId ?? ""}
-                className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-              >
-                <option value="">Sin aeronave (en depósito)</option>
-                {aeronaves.map((aeronave) => (
-                  <option key={aeronave.id} value={aeronave.id}>
-                    {aeronave.matricula}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-gris-400">
-                Cambiá o vaciá este campo para montar/desmontar el componente.
-              </p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gris-700">
                 Estado
               </label>
               <select
@@ -144,10 +124,12 @@ export default async function ActivoDetailPage({
               categoriaIdInicial={activo.categoriaId ?? ""}
               claseRequerida
             />
-            <DepositoUbicacionSelector
+            <AeronaveDepositoSelector
+              aeronaves={aeronaves}
               depositos={depositos}
               ubicaciones={ubicaciones}
-              depositoIdInicial={activo.depositoId}
+              aeronaveIdInicial={activo.aeronaveId ?? ""}
+              depositoIdInicial={activo.depositoId ?? undefined}
               ubicacionIdInicial={activo.ubicacionId ?? ""}
             />
             <div className="grid grid-cols-2 gap-3">

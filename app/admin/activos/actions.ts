@@ -48,8 +48,22 @@ function activoData(formData: FormData) {
     mesesTSO: num(formData, "mesesTSO"),
     estadoId: optionalRelationId(formData, "estadoId"),
     categoriaId: optionalRelationId(formData, "categoriaId"),
-    ubicacionId: optionalRelationId(formData, "ubicacionId"),
   };
+}
+
+// Un activo montado en una aeronave no está en depósito: si se manda
+// aeronaveId, depositoId/ubicacionId se fuerzan a null sin importar lo que
+// venga en el formulario (el selector ya los oculta del lado del cliente,
+// esto es el resguardo del lado del servidor). Si no hay aeronave, el
+// depósito pasa a ser obligatorio.
+function depositoUbicacionData(formData: FormData, aeronaveId: string | null) {
+  if (aeronaveId) return { depositoId: null, ubicacionId: null };
+
+  const depositoId = str(formData, "depositoId");
+  if (!depositoId) {
+    throw new Error("El depósito es obligatorio para un activo en depósito");
+  }
+  return { depositoId, ubicacionId: optionalRelationId(formData, "ubicacionId") };
 }
 
 export async function createActivo(formData: FormData) {
@@ -59,17 +73,13 @@ export async function createActivo(formData: FormData) {
   if (!claseId) {
     throw new Error("La clase es obligatoria");
   }
-  const depositoId = str(formData, "depositoId");
-  if (!depositoId) {
-    throw new Error("El depósito es obligatorio");
-  }
   const aeronaveId = optionalRelationId(formData, "aeronaveId");
 
   await prisma.activo.create({
     data: {
       claseId,
-      depositoId,
       aeronaveId,
+      ...depositoUbicacionData(formData, aeronaveId),
       ...activoData(formData),
     },
   });
@@ -83,8 +93,7 @@ export async function updateActivo(id: string, formData: FormData) {
 
   const claseId = str(formData, "claseId");
   if (!claseId) throw new Error("La clase es obligatoria");
-  const depositoId = str(formData, "depositoId");
-  if (!depositoId) throw new Error("El depósito es obligatorio");
+  const aeronaveId = optionalRelationId(formData, "aeronaveId");
 
   const before = await prisma.activo.findUnique({
     where: { id },
@@ -95,8 +104,8 @@ export async function updateActivo(id: string, formData: FormData) {
     where: { id },
     data: {
       claseId,
-      depositoId,
-      aeronaveId: optionalRelationId(formData, "aeronaveId"),
+      aeronaveId,
+      ...depositoUbicacionData(formData, aeronaveId),
       ...activoData(formData),
     },
   });
