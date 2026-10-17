@@ -95,7 +95,10 @@ export default async function PiezasPage({
                     <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
                       {pieza.deposito.nombre}
                     </td>
-                    <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
+                    <td
+                      className="px-4 py-3 text-gris-600 whitespace-nowrap"
+                      title={pieza.ubicacion?.descripcion ?? undefined}
+                    >
                       {pieza.ubicacion?.codigo ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-gris-600 whitespace-nowrap">

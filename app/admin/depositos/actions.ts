@@ -90,15 +90,33 @@ export async function createUbicacion(
     }
 
     const codigo = construirCodigoUbicacion(pasillo, estante, columna, fila);
+    const descripcion = str(formData, "descripcion") ?? null;
 
     try {
-      await prisma.ubicacion.create({ data: { depositoId, codigo } });
+      await prisma.ubicacion.create({ data: { depositoId, codigo, descripcion } });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new Error(`Ya existe la ubicación "${codigo}" en este depósito`);
       }
       throw error;
     }
+
+    revalidatePath("/admin/depositos");
+  });
+}
+
+export async function updateUbicacion(
+  id: string,
+  _prevState: EstadoAccion,
+  formData: FormData
+): Promise<EstadoAccion> {
+  return ejecutarAccion(async () => {
+    await verificarAdmin();
+
+    await prisma.ubicacion.update({
+      where: { id },
+      data: { descripcion: str(formData, "descripcion") ?? null },
+    });
 
     revalidatePath("/admin/depositos");
   });

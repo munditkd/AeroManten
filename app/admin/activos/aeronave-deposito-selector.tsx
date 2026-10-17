@@ -4,7 +4,7 @@ import { useState } from "react";
 
 type Aeronave = { id: string; matricula: string };
 type Deposito = { id: string; nombre: string };
-type Ubicacion = { id: string; codigo: string; depositoId: string };
+type Ubicacion = { id: string; codigo: string; depositoId: string; descripcion?: string | null };
 
 // Un activo montado en una aeronave no está en depósito: elegir una
 // aeronave acá oculta (y por lo tanto no envía) los campos Depósito/
@@ -92,6 +92,7 @@ export function AeronaveDepositoSelector({
               {ubicacionesFiltradas.map((ubicacion) => (
                 <option key={ubicacion.id} value={ubicacion.id}>
                   {ubicacion.codigo}
+                  {ubicacion.descripcion ? ` — ${ubicacion.descripcion}` : ""}
                 </option>
               ))}
             </select>

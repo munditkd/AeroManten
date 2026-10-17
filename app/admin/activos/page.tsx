@@ -132,7 +132,10 @@ export default async function ActivosPage({
                     <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
                       {activo.deposito?.nombre ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-gris-600 whitespace-nowrap">
+                    <td
+                      className="px-4 py-3 text-gris-600 whitespace-nowrap"
+                      title={activo.ubicacion?.descripcion ?? undefined}
+                    >
                       {activo.ubicacion?.codigo ?? "—"}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">

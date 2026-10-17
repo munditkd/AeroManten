@@ -533,11 +533,12 @@ model Deposito {
 // combinan en un solo campo ("codigo"), separados por guion (ej. "A-3-2-5"),
 // en vez de guardarse en columnas separadas.
 model Ubicacion {
-  id         String   @id @default(cuid())
-  depositoId String
-  codigo     String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String   @id @default(cuid())
+  depositoId  String
+  codigo      String
+  descripcion String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   deposito Deposito @relation(fields: [depositoId], references: [id], onDelete: Cascade)
   activos  Activo[]

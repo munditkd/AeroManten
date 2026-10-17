@@ -1,5 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { createDeposito, deleteDeposito, createUbicacion, deleteUbicacion } from "./actions";
+import {
+  createDeposito,
+  deleteDeposito,
+  createUbicacion,
+  updateUbicacion,
+  deleteUbicacion,
+} from "./actions";
 import { ActionForm } from "@/app/_components/action-form";
 import { ConfirmDeleteButton } from "@/app/_components/confirm-delete-button";
 
@@ -36,58 +42,86 @@ export default async function DepositosPage() {
                   </ConfirmDeleteButton>
                 </div>
 
-                <ul className="mt-3 divide-y divide-gris-100">
+                <div className="mt-3 divide-y divide-gris-100">
                   {deposito.ubicaciones.map((ubicacion) => {
+                    const updateUbicacionWithId = updateUbicacion.bind(null, ubicacion.id);
                     const deleteUbicacionWithId = deleteUbicacion.bind(null, ubicacion.id);
                     return (
-                      <li
-                        key={ubicacion.id}
-                        className="flex items-center justify-between py-2 text-sm"
-                      >
-                        <span className="font-mono text-gris-700">{ubicacion.codigo}</span>
-                        <ConfirmDeleteButton
-                          action={deleteUbicacionWithId}
-                          mensaje={`¿Eliminar la ubicación "${ubicacion.codigo}"?`}
-                          className="text-xs font-medium text-red-500 hover:underline"
-                        >
-                          Eliminar
-                        </ConfirmDeleteButton>
-                      </li>
+                      <details key={ubicacion.id} className="py-2">
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm">
+                          <span>
+                            <span className="font-mono text-gris-700">{ubicacion.codigo}</span>
+                            {ubicacion.descripcion && (
+                              <span className="ml-2 text-gris-500">— {ubicacion.descripcion}</span>
+                            )}
+                          </span>
+                        </summary>
+                        <div className="mt-2 space-y-2 pl-1">
+                          <ActionForm action={updateUbicacionWithId} className="flex gap-2">
+                            <input
+                              name="descripcion"
+                              defaultValue={ubicacion.descripcion ?? ""}
+                              placeholder="Descripción (ej: aceites y lubricantes)"
+                              className="flex-1 rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
+                            />
+                            <button
+                              type="submit"
+                              className="rounded-md border border-gris-300 px-3 py-1.5 text-sm font-medium text-gris-700 hover:bg-gris-50"
+                            >
+                              Guardar
+                            </button>
+                          </ActionForm>
+                          <ConfirmDeleteButton
+                            action={deleteUbicacionWithId}
+                            mensaje={`¿Eliminar la ubicación "${ubicacion.codigo}"?`}
+                            className="text-xs font-medium text-red-500 hover:underline"
+                          >
+                            Eliminar ubicación
+                          </ConfirmDeleteButton>
+                        </div>
+                      </details>
                     );
                   })}
                   {deposito.ubicaciones.length === 0 && (
-                    <li className="py-2 text-sm text-gris-500">Sin ubicaciones todavía.</li>
+                    <p className="py-2 text-sm text-gris-500">Sin ubicaciones todavía.</p>
                   )}
-                </ul>
+                </div>
 
-                <ActionForm action={createUbicacionWithId} className="mt-3 grid grid-cols-4 gap-2">
+                <ActionForm action={createUbicacionWithId} className="mt-3 space-y-2">
+                  <div className="grid grid-cols-4 gap-2">
+                    <input
+                      name="pasillo"
+                      required
+                      placeholder="Pasillo"
+                      className="rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
+                    />
+                    <input
+                      name="estante"
+                      required
+                      placeholder="Estante"
+                      className="rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
+                    />
+                    <input
+                      name="columna"
+                      required
+                      placeholder="Columna"
+                      className="rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
+                    />
+                    <input
+                      name="fila"
+                      required
+                      placeholder="Fila"
+                      className="rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
+                    />
+                  </div>
                   <input
-                    name="pasillo"
-                    required
-                    placeholder="Pasillo"
-                    className="rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
-                  />
-                  <input
-                    name="estante"
-                    required
-                    placeholder="Estante"
-                    className="rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
-                  />
-                  <input
-                    name="columna"
-                    required
-                    placeholder="Columna"
-                    className="rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
-                  />
-                  <input
-                    name="fila"
-                    required
-                    placeholder="Fila"
-                    className="rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
+                    name="descripcion"
+                    placeholder="Descripción (opcional, ej: aceites y lubricantes)"
+                    className="w-full rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
                   />
                   <button
                     type="submit"
-                    className="col-span-4 rounded-md border border-celeste-700 py-1.5 text-sm font-medium text-celeste-700 hover:bg-celeste-50"
+                    className="w-full rounded-md border border-celeste-700 py-1.5 text-sm font-medium text-celeste-700 hover:bg-celeste-50"
                   >
                     Agregar ubicación
                   </button>

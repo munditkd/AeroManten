@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 type Deposito = { id: string; nombre: string };
-type Ubicacion = { id: string; codigo: string; depositoId: string };
+type Ubicacion = { id: string; codigo: string; depositoId: string; descripcion?: string | null };
 
 // Depósito (obligatorio) + Ubicación (opcional) en cascada: elegir un
 // Depósito filtra el segundo select a sus Ubicaciones. Si hay un solo
@@ -60,6 +60,7 @@ export function DepositoUbicacionSelector({
           {ubicacionesFiltradas.map((ubicacion) => (
             <option key={ubicacion.id} value={ubicacion.id}>
               {ubicacion.codigo}
+              {ubicacion.descripcion ? ` — ${ubicacion.descripcion}` : ""}
             </option>
           ))}
         </select>
