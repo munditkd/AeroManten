@@ -226,13 +226,14 @@ model MantenimientoPreventivo {
   tarea       String   @db.Text
   personas    Int?
   horasHombre Float?
-  // Null = todavía sin clasificar.
-  claseId     String?
+  // Clase es obligatoria: agrupa en MP / BS (Boletín de Servicio) / DA
+  // (Directiva de Aeronavegabilidad), los 3 grandes grupos del área.
+  claseId     String
   categoriaId String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  clase          Clase?                          @relation(fields: [claseId], references: [id], onDelete: SetNull)
+  clase          Clase                           @relation(fields: [claseId], references: [id])
   categoria      Categoria?                      @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
   activos        ActivoMantenimientoPreventivo[]
   ordenesTrabajo OrdenTrabajo[]

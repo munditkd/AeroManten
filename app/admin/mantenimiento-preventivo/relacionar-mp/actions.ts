@@ -135,7 +135,7 @@ export async function generarOTDesdeMP(relacionId: string) {
     include: {
       activo: { include: { aeronave: true, clase: true } },
       aeronave: true,
-      mantenimientoPreventivo: true,
+      mantenimientoPreventivo: { include: { clase: true } },
       realizaciones: { orderBy: { fecha: "desc" }, take: 1 },
     },
   });
@@ -171,10 +171,23 @@ export async function generarOTDesdeMP(relacionId: string) {
   const pendiente = await obtenerEstadoPorStatus("OrdenTrabajo", "Pendiente");
   if (!pendiente) throw new Error("No hay estados cargados para Órdenes de Trabajo");
 
+  // La OT hereda la Clase del MP que la generó (MP / BS / DA), resuelta por
+  // nombre contra el catálogo propio de OrdenTrabajo (son catálogos
+  // separados por entidad — ver lib/clases.ts). Se crea si todavía no
+  // existe una Clase con ese nombre para OT.
+  const claseOT = await prisma.clase.upsert({
+    where: {
+      entidad_nombre: { entidad: "OrdenTrabajo", nombre: relacion.mantenimientoPreventivo.clase.nombre },
+    },
+    update: {},
+    create: { entidad: "OrdenTrabajo", nombre: relacion.mantenimientoPreventivo.clase.nombre },
+  });
+
   const ot = await crearOrdenTrabajoConCodigo({
     descripcion: `${relacion.mantenimientoPreventivo.descripcion} — generada desde MP ${relacion.mantenimientoPreventivo.codigo} (${destino})`,
     fecha: new Date(),
     estadoId: pendiente.id,
+    claseId: claseOT.id,
     aeronaveId: esAeronave ? relacion.aeronaveId : (relacion.activo?.aeronaveId ?? null),
     activoId: relacion.activoId,
     mantenimientoPreventivoId: relacion.mantenimientoPreventivoId,

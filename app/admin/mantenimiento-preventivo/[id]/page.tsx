@@ -103,8 +103,9 @@ export default async function MantenimientoPreventivoDetailPage({
             <ClaseCategoriaSelector
               clases={clases}
               categorias={categorias}
-              claseIdInicial={item.claseId ?? ""}
+              claseIdInicial={item.claseId}
               categoriaIdInicial={item.categoriaId ?? ""}
+              claseRequerida
             />
             <div>
               <label className="block text-xs font-medium text-gris-700">

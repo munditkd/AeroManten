@@ -4,15 +4,29 @@ import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
 import { createMantenimientoPreventivo } from "./actions";
 import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
 
-export default async function MantenimientoPreventivoPage() {
+export default async function MantenimientoPreventivoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ clase?: string }>;
+}) {
+  const { clase: claseId } = await searchParams;
+
   const [items, clases, categorias] = await Promise.all([
     prisma.mantenimientoPreventivo.findMany({
+      where: claseId ? { claseId } : {},
       orderBy: { codigo: "asc" },
       include: { clase: true },
     }),
     obtenerClases("MantenimientoPreventivo"),
     obtenerCategoriasDeEntidad("MantenimientoPreventivo"),
   ]);
+
+  const pill = (active: boolean) =>
+    `rounded-md border px-3 py-1.5 text-sm font-medium ${
+      active
+        ? "border-celeste-700 bg-celeste-700 text-white"
+        : "border-gris-300 text-gris-700 hover:bg-gris-50"
+    }`;
 
   return (
     <div>
@@ -21,23 +35,23 @@ export default async function MantenimientoPreventivoPage() {
         Catálogo de tareas de mantenimiento preventivo, con sus intervalos y recursos necesarios.
       </p>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <div className="mb-4 flex flex-wrap gap-2">
-            <Link
-              href="/admin/mantenimiento-preventivo/relacionar-mp"
-              className="rounded-lg border border-gris-200 bg-white px-4 py-2 text-sm font-medium text-celeste-700 hover:bg-celeste-50"
-            >
-              Relacionar Activos/Aeronaves con MP
-            </Link>
-            <Link
-              href="/admin/mantenimiento-preventivo/vencimientos-mp"
-              className="rounded-lg border border-gris-200 bg-white px-4 py-2 text-sm font-medium text-celeste-700 hover:bg-celeste-50"
-            >
-              Listado de MP con Vencimiento
-            </Link>
-          </div>
+      <div className="mb-4 mt-8 flex flex-wrap gap-2">
+        <Link href="/admin/mantenimiento-preventivo" className={pill(!claseId)}>
+          Todos los MP
+        </Link>
+        {clases.map((c) => (
+          <Link
+            key={c.id}
+            href={`/admin/mantenimiento-preventivo?clase=${c.id}`}
+            className={pill(claseId === c.id)}
+          >
+            {c.nombre}
+          </Link>
+        ))}
+      </div>
 
+      <div className="grid gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2">
           <div className="overflow-x-auto rounded-lg border border-gris-200 bg-white">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-gris-200 bg-gris-50 text-xs uppercase text-gris-500">
@@ -98,7 +112,9 @@ export default async function MantenimientoPreventivoPage() {
                       colSpan={9}
                       className="px-4 py-6 text-center text-gris-500"
                     >
-                      Todavía no hay tareas de mantenimiento preventivo cargadas.
+                      {claseId
+                        ? "No hay tareas de mantenimiento preventivo con esa clase."
+                        : "Todavía no hay tareas de mantenimiento preventivo cargadas."}
                     </td>
                   </tr>
                 )}
@@ -107,7 +123,22 @@ export default async function MantenimientoPreventivoPage() {
           </div>
         </div>
 
-        <div>
+        <div className="space-y-4">
+          <div className="flex flex-col gap-2">
+            <Link
+              href="/admin/mantenimiento-preventivo/relacionar-mp"
+              className="rounded-lg border border-gris-200 bg-white px-4 py-2 text-center text-sm font-medium text-celeste-700 hover:bg-celeste-50"
+            >
+              Relacionar Activos/Aeronaves con MP
+            </Link>
+            <Link
+              href="/admin/mantenimiento-preventivo/vencimientos-mp"
+              className="rounded-lg border border-gris-200 bg-white px-4 py-2 text-center text-sm font-medium text-celeste-700 hover:bg-celeste-50"
+            >
+              Listado de MP con Vencimiento
+            </Link>
+          </div>
+
           <div className="rounded-lg border border-gris-200 bg-white p-6">
             <h2 className="text-sm font-semibold text-gris-900">
               Nueva tarea
@@ -134,7 +165,7 @@ export default async function MantenimientoPreventivoPage() {
                   className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
                 />
               </div>
-              <ClaseCategoriaSelector clases={clases} categorias={categorias} />
+              <ClaseCategoriaSelector clases={clases} categorias={categorias} claseRequerida />
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gris-700">

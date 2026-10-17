@@ -36,7 +36,6 @@ function mantenimientoData(formData: FormData) {
     meses: num(formData, "meses"),
     personas: num(formData, "personas"),
     horasHombre: num(formData, "horasHombre"),
-    claseId: optionalRelationId(formData, "claseId"),
     categoriaId: optionalRelationId(formData, "categoriaId"),
   };
 }
@@ -47,8 +46,12 @@ export async function createMantenimientoPreventivo(formData: FormData) {
   const codigo = str(formData, "codigo");
   const descripcion = str(formData, "descripcion");
   const tarea = str(formData, "tarea");
+  const claseId = str(formData, "claseId");
   if (!codigo || !descripcion || !tarea) {
     throw new Error("Código, descripción y tarea son obligatorios");
+  }
+  if (!claseId) {
+    throw new Error("La clase (MP / BS / DA) es obligatoria");
   }
 
   try {
@@ -57,6 +60,7 @@ export async function createMantenimientoPreventivo(formData: FormData) {
         codigo: codigo.toUpperCase(),
         descripcion,
         tarea,
+        claseId,
         ...mantenimientoData(formData),
       },
     });
@@ -79,8 +83,12 @@ export async function updateMantenimientoPreventivo(id: string, formData: FormDa
   const codigo = str(formData, "codigo");
   const descripcion = str(formData, "descripcion");
   const tarea = str(formData, "tarea");
+  const claseId = str(formData, "claseId");
   if (!codigo || !descripcion || !tarea) {
     throw new Error("Código, descripción y tarea son obligatorios");
+  }
+  if (!claseId) {
+    throw new Error("La clase (MP / BS / DA) es obligatoria");
   }
 
   try {
@@ -90,6 +98,7 @@ export async function updateMantenimientoPreventivo(id: string, formData: FormDa
         codigo: codigo.toUpperCase(),
         descripcion,
         tarea,
+        claseId,
         ...mantenimientoData(formData),
       },
     });
