@@ -7,20 +7,22 @@ export function BrandStrip({
   empresa?: { empresa: string; logoDataUrl: string | null } | null;
 }) {
   return (
-    <div className="bg-celeste-900 px-4 py-2 text-center sm:px-6">
-      <p className="text-sm font-semibold tracking-widest text-white">
-        AEROMANTEN
-      </p>
-      <p className="text-xs text-celeste-200">Mantenimiento Aeronáutico</p>
-      {empresa && (
-        <div className="mt-1.5 flex items-center justify-center gap-2 border-t border-celeste-700 pt-1.5">
-          {empresa.logoDataUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={empresa.logoDataUrl} alt="" className="h-5 w-5 object-contain" />
-          )}
-          <p className="text-xs font-medium text-celeste-100">{empresa.empresa}</p>
-        </div>
-      )}
+    <div className="bg-celeste-900 px-4 py-2 sm:px-6">
+      <div className="relative mx-auto max-w-6xl text-center">
+        {empresa && (
+          <div className="absolute left-0 top-1/2 hidden -translate-y-1/2 items-center gap-2 sm:flex">
+            {empresa.logoDataUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={empresa.logoDataUrl} alt="" className="h-6 w-6 object-contain" />
+            )}
+            <p className="text-xs font-medium text-celeste-100">{empresa.empresa}</p>
+          </div>
+        )}
+        <p className="text-sm font-semibold tracking-widest text-white">
+          AEROMANTEN
+        </p>
+        <p className="text-xs text-celeste-200">Mantenimiento Aeronáutico</p>
+      </div>
     </div>
   );
 }
