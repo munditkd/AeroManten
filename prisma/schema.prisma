@@ -633,3 +633,18 @@ model AuditoriaAcceso {
   @@index([fecha])
   @@map("auditoria_accesos")
 }
+
+// Datos de la empresa que usa el sistema (nombre + logo), para encabezar
+// los reportes (PDF/Excel/JPG). Fila única (id fijo "config") para que el
+// software quede "white-label": si otra empresa adquiere AeroManten, solo
+// tiene que cambiar esto acá, sin tocar código. El logo se guarda como data
+// URL (base64) en vez de archivo en disco, para que los reportes generados
+// con Puppeteer lo embeban sin depender de una ruta pública.
+model ConfiguracionEmpresa {
+  id           String   @id @default("config")
+  nombre       String
+  logoDataUrl  String?  @db.MediumText
+  updatedAt    DateTime @updatedAt
+
+  @@map("configuracion_empresa")
+}

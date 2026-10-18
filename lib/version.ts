@@ -1,2 +1,2 @@
 // Versión mostrada en el header de /admin. Bump manual en cada release.
-export const APP_VERSION = "0.8.1";
+export const APP_VERSION = "0.9.0";

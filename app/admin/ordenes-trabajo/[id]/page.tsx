@@ -103,6 +103,27 @@ export default async function OrdenTrabajoDetailPage({
         {ot.actualizadoPor ? ` por ${ot.actualizadoPor}` : ""}
       </p>
 
+      <div className="mt-4 flex flex-wrap gap-2">
+        <a
+          href={`/admin/ordenes-trabajo/${ot.id}/reporte/pdf`}
+          className="rounded-md border border-gris-300 px-3 py-1.5 text-sm font-medium text-gris-700 hover:bg-gris-50"
+        >
+          Descargar PDF
+        </a>
+        <a
+          href={`/admin/ordenes-trabajo/${ot.id}/reporte/excel`}
+          className="rounded-md border border-gris-300 px-3 py-1.5 text-sm font-medium text-gris-700 hover:bg-gris-50"
+        >
+          Descargar Excel
+        </a>
+        <a
+          href={`/admin/ordenes-trabajo/${ot.id}/reporte/jpg`}
+          className="rounded-md border border-gris-300 px-3 py-1.5 text-sm font-medium text-gris-700 hover:bg-gris-50"
+        >
+          Descargar JPG
+        </a>
+      </div>
+
       <div className="mt-8 grid gap-8 lg:grid-cols-2">
         <div className="rounded-lg border border-gris-200 bg-white p-6">
           <h2 className="text-sm font-semibold text-gris-900">Datos de la orden</h2>
