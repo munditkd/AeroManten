@@ -1,8 +1,12 @@
 import ExcelJS from "exceljs";
 import { prisma } from "@/lib/prisma";
-import { obtenerConfiguracionEmpresa } from "@/lib/configuracion-empresa";
+import { obtenerEmpresaPrincipal } from "@/lib/configuracion-empresa";
 import { renderizarHtml } from "./navegador";
 import { PRIORIDAD_OT_LABEL } from "@/lib/ordenes-trabajo";
+
+// AEROMANTEN (nombre del software) sirve de respaldo cuando todavía no se
+// cargó ninguna Empresa en Propietario.
+const NOMBRE_SOFTWARE = "AeroManten";
 
 async function obtenerDatosReporteOT(id: string) {
   const ot = await prisma.ordenTrabajo.findUnique({
@@ -28,7 +32,10 @@ async function obtenerDatosReporteOT(id: string) {
   });
   if (!ot) throw new Error("La orden de trabajo no existe");
 
-  const configuracion = await obtenerConfiguracionEmpresa();
+  const empresaPrincipal = await obtenerEmpresaPrincipal();
+  const configuracion = empresaPrincipal
+    ? { nombre: empresaPrincipal.empresa, logoDataUrl: empresaPrincipal.logoDataUrl }
+    : { nombre: NOMBRE_SOFTWARE, logoDataUrl: null };
   return { ot, configuracion };
 }
 
@@ -232,6 +239,7 @@ function construirHtmlReporteOT({ ot, configuracion }: DatosReporte): string {
   <div class="pie">
     Generado el ${new Date().toLocaleString("es-AR")}
     ${ot.actualizadoPor ? ` — Última actualización por ${escapeHtml(ot.actualizadoPor)}` : ""}
+    <br/>Powered by ${NOMBRE_SOFTWARE}
   </div>
 </body>
 </html>`;
@@ -354,6 +362,10 @@ export async function generarExcelOT(id: string): Promise<{ buffer: Buffer; codi
       .join(", ");
     fila++;
   }
+
+  fila += 2;
+  hoja.getCell(`A${fila}`).value = `Powered by ${NOMBRE_SOFTWARE}`;
+  hoja.getCell(`A${fila}`).font = { italic: true, size: 9, color: { argb: "FF9CA3AF" } };
 
   hoja.getColumn(1).width = 32;
   hoja.getColumn(2).width = 20;

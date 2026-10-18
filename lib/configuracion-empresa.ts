@@ -1,12 +1,20 @@
 import { prisma } from "@/lib/prisma";
 
-// Fila única (id fijo "config"). Si no existe todavía (primer deploy antes
-// de que un admin la cargue), se crea con un nombre genérico y sin logo —
-// los reportes igual funcionan, solo sin imagen en el encabezado.
-export async function obtenerConfiguracionEmpresa() {
-  return prisma.configuracionEmpresa.upsert({
-    where: { id: "config" },
-    update: {},
-    create: { id: "config", nombre: "Mi empresa" },
+// AEROMANTEN es el nombre del software y no cambia. La "empresa" que lo usa
+// es la que se carga en el Propietario (campo Empresa + Logo, exclusivo de
+// ADMIN — ver app/admin/propietarios). En la práctica debería haber un solo
+// Propietario con esto cargado: se toma el primero (por fecha de alta) que
+// tenga el campo Empresa completo. Si todavía no hay ninguno, se devuelve
+// null y quien lo use muestra un fallback genérico.
+export async function obtenerEmpresaPrincipal(): Promise<{
+  empresa: string;
+  logoDataUrl: string | null;
+} | null> {
+  const propietario = await prisma.propietario.findFirst({
+    where: { empresa: { not: null } },
+    orderBy: { createdAt: "asc" },
+    select: { empresa: true, logoDataUrl: true },
   });
+  if (!propietario?.empresa) return null;
+  return { empresa: propietario.empresa, logoDataUrl: propietario.logoDataUrl };
 }

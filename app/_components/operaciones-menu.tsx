@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 const ITEMS = [
-  { href: "/admin/propietarios", label: "Propietarios" },
+  { href: "/admin/propietarios", label: "Propietario" },
   { href: "/admin/aeronaves", label: "Aeronaves" },
   { href: "/admin/activos", label: "Activos" },
   { href: "/admin/vuelos", label: "Carga de Vuelos" },

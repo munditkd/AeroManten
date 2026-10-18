@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { updatePropietario, deletePropietario } from "../actions";
 import { createAeronave } from "../../aeronaves/actions";
 
@@ -11,10 +12,14 @@ export default async function PropietarioDetailPage({
 }) {
   const { id } = await params;
 
-  const propietario = await prisma.propietario.findUnique({
-    where: { id },
-    include: { aeronaves: { orderBy: { matricula: "asc" } } },
-  });
+  const [propietario, session] = await Promise.all([
+    prisma.propietario.findUnique({
+      where: { id },
+      include: { aeronaves: { orderBy: { matricula: "asc" } } },
+    }),
+    auth(),
+  ]);
+  const esAdmin = session?.user?.role === "ADMIN";
 
   if (!propietario) notFound();
 
@@ -27,7 +32,7 @@ export default async function PropietarioDetailPage({
         href="/admin/propietarios"
         className="text-sm text-gris-500 hover:text-celeste-700"
       >
-        ← Propietarios
+        ← Propietario
       </Link>
 
       <h1 className="mt-2 text-2xl font-semibold text-gris-900">
@@ -40,6 +45,24 @@ export default async function PropietarioDetailPage({
             Datos del propietario
           </h2>
           <form action={updatePropietarioWithId} className="mt-4 space-y-3">
+            {esAdmin && (
+              <div>
+                <label className="block text-xs font-medium text-gris-700">
+                  Empresa
+                </label>
+                <input
+                  name="empresa"
+                  maxLength={40}
+                  defaultValue={propietario.empresa ?? ""}
+                  placeholder="Nombre de la empresa que usa el software"
+                  className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                />
+                <p className="mt-1 text-xs text-gris-400">
+                  Se muestra en la franja azul del encabezado y en los reportes (máx. 40
+                  caracteres).
+                </p>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-gris-700">
                 Nombre / Razón social *
@@ -92,6 +115,30 @@ export default async function PropietarioDetailPage({
                 className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
               />
             </div>
+            {esAdmin && (
+              <div>
+                <label className="block text-xs font-medium text-gris-700">
+                  Logo de la empresa
+                </label>
+                {propietario.logoDataUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={propietario.logoDataUrl}
+                    alt="Logo actual"
+                    className="mt-2 h-16 w-16 rounded border border-gris-200 object-contain p-1"
+                  />
+                )}
+                <input
+                  name="logo"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="mt-2 w-full text-sm"
+                />
+                <p className="mt-1 text-xs text-gris-400">
+                  PNG, JPG o WEBP, hasta 2 MB. Dejalo vacío para mantener el logo actual.
+                </p>
+              </div>
+            )}
             <button
               type="submit"
               className="w-full rounded-md bg-celeste-700 py-2 text-sm font-medium text-white hover:bg-celeste-800"

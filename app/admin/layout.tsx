@@ -6,10 +6,11 @@ import { OperacionesMenu } from "../_components/operaciones-menu";
 import { AdministracionMenu } from "../_components/administracion-menu";
 import { UserMenu } from "../_components/user-menu";
 import { BrandStrip } from "../_components/brand-strip";
+import { obtenerEmpresaPrincipal } from "@/lib/configuracion-empresa";
 import { APP_VERSION } from "@/lib/version";
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
-  const session = await auth();
+  const [session, empresa] = await Promise.all([auth(), obtenerEmpresaPrincipal()]);
 
   return (
     <div className="flex min-h-full flex-col bg-gris-50">
@@ -40,7 +41,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         </div>
       </header>
 
-      <BrandStrip />
+      <BrandStrip empresa={empresa} />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         {children}

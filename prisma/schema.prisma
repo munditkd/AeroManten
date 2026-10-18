@@ -111,8 +111,15 @@ model Propietario {
   telefono  String?
   email     String?
   direccion String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Empresa que usa el software (AEROMANTEN es el nombre del software, no
+  // cambia) + su logo, usados en la franja azul del encabezado y en los
+  // reportes (ver lib/configuracion-empresa.ts). En la práctica debería
+  // haber un solo Propietario con esto cargado. Edición exclusiva de ADMIN,
+  // aunque viva en esta misma pantalla (ver app/admin/propietarios/actions.ts).
+  empresa     String?
+  logoDataUrl String?  @db.MediumText
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   aeronaves Aeronave[]
 
@@ -634,17 +641,3 @@ model AuditoriaAcceso {
   @@map("auditoria_accesos")
 }
 
-// Datos de la empresa que usa el sistema (nombre + logo), para encabezar
-// los reportes (PDF/Excel/JPG). Fila única (id fijo "config") para que el
-// software quede "white-label": si otra empresa adquiere AeroManten, solo
-// tiene que cambiar esto acá, sin tocar código. El logo se guarda como data
-// URL (base64) en vez de archivo en disco, para que los reportes generados
-// con Puppeteer lo embeban sin depender de una ruta pública.
-model ConfiguracionEmpresa {
-  id           String   @id @default("config")
-  nombre       String
-  logoDataUrl  String?  @db.MediumText
-  updatedAt    DateTime @updatedAt
-
-  @@map("configuracion_empresa")
-}
