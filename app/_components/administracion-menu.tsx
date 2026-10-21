@@ -12,6 +12,7 @@ const ITEMS = [
   { href: "/admin/importacion", label: "Importación" },
   { href: "/admin/clases", label: "Clases y Categorías" },
   { href: "/admin/depositos", label: "Depósitos y Ubicaciones" },
+  { href: "/admin/proveedores", label: "Proveedores" },
 ];
 
 export function AdministracionMenu() {

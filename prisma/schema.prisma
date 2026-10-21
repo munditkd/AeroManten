@@ -22,25 +22,25 @@ enum Role {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  username      String?   @unique
-  email         String    @unique
-  passwordHash  String
+  id                 String    @id @default(cuid())
+  name               String?
+  username           String?   @unique
+  email              String    @unique
+  passwordHash       String
   // "role" sigue siendo el super-usuario del sistema (ADMIN = acceso total,
   // sin importar el grupo). "grupoId" define los permisos de
   // insertar/modificar/borrar para todos los demás usuarios.
-  role          Role      @default(USER)
-  grupoId       String?
+  role               Role      @default(USER)
+  grupoId            String?
   // Persona de la tabla Personal que corresponde a esta cuenta de login (si
   // ya se vinculó). Se usa para completar solo el "originador" de las OT.
-  personalId    String?   @unique
-  emailVerified DateTime?
-  image         String?
+  personalId         String?   @unique
+  emailVerified      DateTime?
+  image              String?
   // Minutos de inactividad antes de desloguear solo. Opciones: 30/60/120/180.
-  idleTimeoutMinutos Int @default(60)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  idleTimeoutMinutos Int       @default(60)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   // Requerido por el adapter de Auth.js si en el futuro sumás
   // login social (Google, GitHub, etc.)
@@ -105,12 +105,12 @@ model VerificationToken {
 }
 
 model Propietario {
-  id        String   @id @default(cuid())
-  nombre    String
-  documento String?
-  telefono  String?
-  email     String?
-  direccion String?
+  id          String   @id @default(cuid())
+  nombre      String
+  documento   String?
+  telefono    String?
+  email       String?
+  direccion   String?
   // Empresa que usa el software (AEROMANTEN es el nombre del software, no
   // cambia) + su logo, usados en la franja azul del encabezado y en los
   // reportes (ver lib/configuracion-empresa.ts). En la práctica debería
@@ -469,6 +469,7 @@ model Clase {
   piezas                    Pieza[]
   mantenimientosPreventivos MantenimientoPreventivo[]
   ordenesTrabajo            OrdenTrabajo[]
+  proveedores               Proveedor[]
 
   @@unique([entidad, nombre])
   @@map("clases")
@@ -487,9 +488,34 @@ model Categoria {
   piezas                    Pieza[]
   mantenimientosPreventivos MantenimientoPreventivo[]
   ordenesTrabajo            OrdenTrabajo[]
+  proveedores               Proveedor[]
 
   @@unique([claseId, nombre])
   @@map("categorias")
+}
+
+// Proveedores de productos o servicios, agrupados por Clase/Rubro y
+// Categoría (ver lib/clases.ts) para poder armar Requerimientos de
+// cotización dirigidos a un rubro específico.
+model Proveedor {
+  id            String   @id @default(cuid())
+  nombre        String
+  documento     String?
+  contacto      String?
+  telefono      String?
+  email         String?
+  direccion     String?
+  observaciones String?
+  // Null = todavía sin clasificar (clase/categoría se definen más adelante).
+  claseId       String?
+  categoriaId   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  clase     Clase?     @relation(fields: [claseId], references: [id])
+  categoria Categoria? @relation(fields: [categoriaId], references: [id])
+
+  @@map("proveedores")
 }
 
 // Piezas sin número de serie usadas como insumo en mantenimiento (caños,
@@ -640,4 +666,3 @@ model AuditoriaAcceso {
   @@index([fecha])
   @@map("auditoria_accesos")
 }
-
