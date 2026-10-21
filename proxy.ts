@@ -7,6 +7,35 @@ import type { NextFetchEvent, NextRequest } from "next/server";
 const ACTIVITY_COOKIE = "am_last_activity";
 const SESSION_COOKIE_NAMES = ["authjs.session-token", "__Secure-authjs.session-token"];
 const IDLE_LOGOUT_MARKER = "motivo=inactividad";
+const ADMIN_ONLY_PREFIXES = [
+  "/admin/personal",
+  "/admin/grupos",
+  "/admin/usuarios",
+  "/admin/estados",
+  "/admin/auditoria",
+  "/admin/importacion",
+  "/admin/clases",
+  "/admin/depositos",
+];
+
+function esRutaSoloAdmin(pathname: string): boolean {
+  return ADMIN_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+// <Link> prefetchea el RSC de las rutas visibles en el menú apenas se
+// renderiza la página, sin que el usuario haga nada — si esto contara como
+// "actividad", la sola pestaña abierta mantendría la sesión viva para
+// siempre (y de forma errática, según cuándo decida revalidar el prefetch
+// cache), haciendo que el cierre por inactividad nunca dispare o dispare de
+// forma impredecible. Next.js marca estos pedidos con alguno de estos
+// headers según la versión.
+function esPrefetch(req: NextRequest): boolean {
+  return (
+    req.headers.get("next-router-prefetch") === "1" ||
+    req.headers.get("purpose") === "prefetch" ||
+    req.headers.get("sec-purpose") === "prefetch"
+  );
+}
 
 function clearSessionCookies(response: NextResponse) {
   for (const name of SESSION_COOKIE_NAMES) {
@@ -72,6 +101,15 @@ const withAuth = auth(async (req) => {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
+  // Un prefetch no es una visita real: se deja pasar (respetando el gate de
+  // rutas solo-ADMIN) sin tocar para nada el reloj de inactividad.
+  if (esPrefetch(req)) {
+    if (esRutaSoloAdmin(req.nextUrl.pathname) && req.auth.user?.role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
+    return NextResponse.next();
+  }
+
   // Se busca en cada request (no se guarda en el JWT) para que un cambio de
   // preferencia en /perfil aplique de inmediato, sin esperar a un nuevo login.
   const usuario = await prisma.user.findUnique({
@@ -90,22 +128,8 @@ const withAuth = auth(async (req) => {
     return response;
   }
 
-  const ADMIN_ONLY_PREFIXES = [
-    "/admin/personal",
-    "/admin/grupos",
-    "/admin/usuarios",
-    "/admin/estados",
-    "/admin/auditoria",
-    "/admin/importacion",
-    "/admin/clases",
-    "/admin/depositos",
-  ];
-  const isAdminOnlyRoute = ADMIN_ONLY_PREFIXES.some((prefix) =>
-    req.nextUrl.pathname.startsWith(prefix)
-  );
-
   const response =
-    isAdminOnlyRoute && req.auth.user?.role !== "ADMIN"
+    esRutaSoloAdmin(req.nextUrl.pathname) && req.auth.user?.role !== "ADMIN"
       ? NextResponse.redirect(new URL("/admin", req.url))
       : NextResponse.next();
 
