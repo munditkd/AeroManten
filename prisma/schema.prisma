@@ -699,6 +699,7 @@ model Pieza {
 // Depósito porque un servicio no es almacenable.
 model Servicio {
   id           String   @id @default(cuid())
+  codigo       Int      @unique @default(autoincrement())
   nombre       String
   descripcion  String?
   unidadMedida String

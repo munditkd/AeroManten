@@ -60,6 +60,7 @@ export default async function ServiciosPage({
             <table className="w-full text-left text-sm">
               <thead className="border-b border-gris-200 bg-gris-50 text-xs uppercase text-gris-500">
                 <tr>
+                  <th className="px-4 py-3">Código</th>
                   <th className="px-4 py-3">Nombre</th>
                   <th className="px-4 py-3">Clase</th>
                   <th className="px-4 py-3">Categoría</th>
@@ -69,6 +70,7 @@ export default async function ServiciosPage({
               <tbody className="divide-y divide-gris-100">
                 {servicios.map((servicio) => (
                   <tr key={servicio.id} className="hover:bg-gris-50">
+                    <td className="px-4 py-3 text-gris-600 whitespace-nowrap">{servicio.codigo}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <Link
                         href={`/admin/servicios/${servicio.id}`}
@@ -90,7 +92,7 @@ export default async function ServiciosPage({
                 ))}
                 {servicios.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-gris-500">
+                    <td colSpan={5} className="px-4 py-6 text-center text-gris-500">
                       {claseId ? "No hay servicios con esa clase." : "Todavía no hay servicios cargados."}
                     </td>
                   </tr>

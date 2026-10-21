@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import type { EstadoAccion } from "@/lib/accion-segura";
 
 type ItemResuelto = {
@@ -9,11 +9,108 @@ type ItemResuelto = {
   piezaId: string | null;
   servicioId: string | null;
   nombre: string;
+  codigo: number;
+  claseCategoria: string | null;
   unidad: string;
 };
 
 type OpcionCatalogo = { id: string; nombre: string; unidadMedida: string };
 type RequerimientoAbierto = { id: string; codigo: string; titulo: string };
+
+function TachoIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-13M10 11v6m4-6v6"
+      />
+    </svg>
+  );
+}
+
+// Fila editable: cada celda guarda sola al cambiar (onChange/onBlur), sin
+// botones de Guardar/Cancelar por fila — ver pedido del usuario. Usa refs en
+// vez de estado controlado para no pelear con los defaultValue al refrescar
+// la lista desde el servidor después de cada guardado.
+function FilaEditable({
+  item,
+  numero,
+  tipoLabel,
+  opcionesCatalogo,
+  onGuardar,
+  onBorrar,
+  pending,
+}: {
+  item: ItemResuelto;
+  numero: number;
+  tipoLabel: "pieza" | "servicio";
+  opcionesCatalogo: OpcionCatalogo[];
+  onGuardar: (itemId: string, formData: FormData) => void;
+  onBorrar: (item: ItemResuelto) => void;
+  pending: boolean;
+}) {
+  const selectRef = useRef<HTMLSelectElement>(null);
+  const cantidadRef = useRef<HTMLInputElement>(null);
+
+  function guardar() {
+    const formData = new FormData();
+    formData.set(
+      tipoLabel === "pieza" ? "piezaId" : "servicioId",
+      selectRef.current?.value ?? ""
+    );
+    formData.set("cantidad", cantidadRef.current?.value ?? "");
+    onGuardar(item.id, formData);
+  }
+
+  return (
+    <tr>
+      <td className="px-3 py-2 text-gris-500">{numero}</td>
+      <td className="px-3 py-2 text-gris-500">{item.codigo}</td>
+      <td className="px-3 py-2">
+        <select
+          ref={selectRef}
+          defaultValue={item.piezaId ?? item.servicioId ?? ""}
+          onChange={guardar}
+          disabled={pending}
+          className="w-full rounded-md border border-gris-300 px-2 py-1 text-sm focus:border-celeste-600 focus:outline-none"
+        >
+          {opcionesCatalogo.map((op) => (
+            <option key={op.id} value={op.id}>
+              {op.nombre}
+            </option>
+          ))}
+        </select>
+      </td>
+      <td className="px-3 py-2 text-gris-500">{item.claseCategoria ?? "—"}</td>
+      <td className="px-3 py-2">
+        <input
+          ref={cantidadRef}
+          type="number"
+          step="0.01"
+          min="0.01"
+          defaultValue={item.cantidad}
+          onBlur={guardar}
+          disabled={pending}
+          className="w-24 rounded-md border border-gris-300 px-2 py-1 text-sm focus:border-celeste-600 focus:outline-none"
+        />
+      </td>
+      <td className="px-3 py-2 text-gris-500">{item.unidad}</td>
+      <td className="px-3 py-2 text-right">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => onBorrar(item)}
+          title="Quitar línea"
+          className="text-red-500 hover:text-red-700 disabled:opacity-50"
+        >
+          <TachoIcon />
+        </button>
+      </td>
+    </tr>
+  );
+}
 
 // Agrega/quita ítems sigue abierto a cualquier usuario con permiso (ver
 // createItem más abajo, fuera de este componente). Acá adentro vive lo
@@ -43,8 +140,7 @@ export function ItemsList({
   ) => Promise<EstadoAccion>;
   moverItemsAction: (prevState: EstadoAccion, formData: FormData) => Promise<EstadoAccion>;
 }) {
-  const [editandoId, setEditandoId] = useState<string | null>(null);
-  const [modoMover, setModoMover] = useState(false);
+  const [modo, setModo] = useState<"ver" | "editar" | "mover">("ver");
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
   const [modalAbierto, setModalAbierto] = useState(false);
   const [destinoId, setDestinoId] = useState("");
@@ -62,20 +158,28 @@ export function ItemsList({
     });
   }
 
-  function salirDeModoMover() {
-    setModoMover(false);
+  function volverAVer() {
+    setModo("ver");
     setSeleccionados(new Set());
     setModalAbierto(false);
     setDestinoId("");
+    setError(null);
   }
 
-  function guardarEdicion(itemId: string, formEl: HTMLFormElement) {
+  function guardarCelda(itemId: string, formData: FormData) {
     setError(null);
-    const formData = new FormData(formEl);
     startTransition(async () => {
       const resultado = await updateItemAction(itemId, { error: null }, formData);
       if (resultado.error) setError(resultado.error);
-      else setEditandoId(null);
+    });
+  }
+
+  function borrarItem(item: ItemResuelto) {
+    if (!window.confirm(`¿Quitar "${item.nombre}" del requerimiento?`)) return;
+    setError(null);
+    startTransition(async () => {
+      const resultado = await deleteItemAction(item.id);
+      if (resultado.error) setError(resultado.error);
     });
   }
 
@@ -91,7 +195,7 @@ export function ItemsList({
     startTransition(async () => {
       const resultado = await moverItemsAction({ error: null }, formData);
       if (resultado.error) setError(resultado.error);
-      else salirDeModoMover();
+      else volverAVer();
     });
   }
 
@@ -99,18 +203,31 @@ export function ItemsList({
     <div>
       {puedeAprobar && items.length > 0 && (
         <div className="mb-3 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => (modoMover ? salirDeModoMover() : setModoMover(true))}
-            className={`rounded-md border px-3 py-1.5 text-xs font-medium ${
-              modoMover
-                ? "border-gris-300 text-gris-700 hover:bg-gris-50"
-                : "border-celeste-700 text-celeste-700 hover:bg-celeste-50"
-            }`}
-          >
-            {modoMover ? "Cancelar" : "Mover líneas"}
-          </button>
-          {modoMover && seleccionados.size > 0 && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => (modo === "editar" ? volverAVer() : setModo("editar"))}
+              className={`rounded-md border px-3 py-1.5 text-xs font-medium ${
+                modo === "editar"
+                  ? "border-gris-300 text-gris-700 hover:bg-gris-50"
+                  : "border-celeste-700 text-celeste-700 hover:bg-celeste-50"
+              }`}
+            >
+              {modo === "editar" ? "Listo" : "Editar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => (modo === "mover" ? volverAVer() : setModo("mover"))}
+              className={`rounded-md border px-3 py-1.5 text-xs font-medium ${
+                modo === "mover"
+                  ? "border-gris-300 text-gris-700 hover:bg-gris-50"
+                  : "border-celeste-700 text-celeste-700 hover:bg-celeste-50"
+              }`}
+            >
+              {modo === "mover" ? "Cancelar" : "Mover líneas"}
+            </button>
+          </div>
+          {modo === "mover" && seleccionados.size > 0 && (
             <button
               type="button"
               onClick={() => setModalAbierto(true)}
@@ -122,118 +239,67 @@ export function ItemsList({
         </div>
       )}
 
-      <ul className="divide-y divide-gris-100">
-        {items.map((item) => {
-          const editando = editandoId === item.id;
-          return (
-            <li key={item.id} className="py-3">
-              {editando ? (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    guardarEdicion(item.id, e.currentTarget);
-                  }}
-                  className="flex flex-wrap items-end gap-2"
-                >
-                  <div className="flex-1 basis-full sm:basis-auto">
-                    <label className="block text-xs font-medium text-gris-700">
-                      {catalogoLabel}
-                    </label>
-                    <select
-                      name={tipoLabel === "pieza" ? "piezaId" : "servicioId"}
-                      defaultValue={item.piezaId ?? item.servicioId ?? ""}
-                      required
-                      className="mt-1 w-full rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
-                    >
-                      {opcionesCatalogo.map((op) => (
-                        <option key={op.id} value={op.id}>
-                          {op.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="w-24">
-                    <label className="block text-xs font-medium text-gris-700">Cant.</label>
-                    <input
-                      name="cantidad"
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      defaultValue={item.cantidad}
-                      required
-                      className="mt-1 w-full rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={pending}
-                    className="rounded-md border border-celeste-700 px-3 py-1.5 text-xs font-medium text-celeste-700 hover:bg-celeste-50"
-                  >
-                    Guardar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditandoId(null)}
-                    className="rounded-md border border-gris-300 px-3 py-1.5 text-xs font-medium text-gris-600 hover:bg-gris-50"
-                  >
-                    Cancelar
-                  </button>
-                </form>
+      <div className="overflow-x-auto rounded-md border border-gris-200">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-gris-200 bg-gris-50 text-xs uppercase text-gris-500">
+            <tr>
+              {modo === "mover" && <th className="px-3 py-2"></th>}
+              <th className="px-3 py-2">Ítem</th>
+              <th className="px-3 py-2">Código</th>
+              <th className="px-3 py-2">{catalogoLabel}</th>
+              <th className="px-3 py-2">Clase / Categoría</th>
+              <th className="px-3 py-2">Cantidad</th>
+              <th className="px-3 py-2">Unidad</th>
+              {modo === "editar" && <th className="px-3 py-2"></th>}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gris-100">
+            {items.map((item, idx) =>
+              modo === "editar" ? (
+                <FilaEditable
+                  key={item.id}
+                  item={item}
+                  numero={idx + 1}
+                  tipoLabel={tipoLabel}
+                  opcionesCatalogo={opcionesCatalogo}
+                  onGuardar={guardarCelda}
+                  onBorrar={borrarItem}
+                  pending={pending}
+                />
               ) : (
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    {modoMover && (
+                <tr key={item.id}>
+                  {modo === "mover" && (
+                    <td className="px-3 py-2">
                       <input
                         type="checkbox"
                         checked={seleccionados.has(item.id)}
                         onChange={(e) => toggleSeleccionado(item.id, e.target.checked)}
                         className="h-4 w-4"
                       />
-                    )}
-                    <div>
-                      <p className="text-sm text-gris-900">{item.nombre}</p>
-                      <p className="text-xs text-gris-500">
-                        {item.cantidad} {item.unidad}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    {puedeAprobar && !modoMover && (
-                      <button
-                        type="button"
-                        onClick={() => setEditandoId(item.id)}
-                        className="text-xs font-medium text-celeste-700 hover:underline"
-                      >
-                        Editar
-                      </button>
-                    )}
-                    {!modoMover && (
-                      <button
-                        type="button"
-                        disabled={pending}
-                        onClick={() => {
-                          if (!window.confirm(`¿Quitar "${item.nombre}" del requerimiento?`)) return;
-                          setError(null);
-                          startTransition(async () => {
-                            const resultado = await deleteItemAction(item.id);
-                            if (resultado.error) setError(resultado.error);
-                          });
-                        }}
-                        className="text-xs font-medium text-red-500 hover:underline"
-                      >
-                        Quitar
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </li>
-          );
-        })}
-        {items.length === 0 && (
-          <li className="py-3 text-sm text-gris-500">Todavía no hay ítems cargados.</li>
-        )}
-      </ul>
+                    </td>
+                  )}
+                  <td className="px-3 py-2 text-gris-500">{idx + 1}</td>
+                  <td className="px-3 py-2 text-gris-500">{item.codigo}</td>
+                  <td className="px-3 py-2 text-gris-900">{item.nombre}</td>
+                  <td className="px-3 py-2 text-gris-500">{item.claseCategoria ?? "—"}</td>
+                  <td className="px-3 py-2 text-gris-900">{item.cantidad}</td>
+                  <td className="px-3 py-2 text-gris-500">{item.unidad}</td>
+                </tr>
+              )
+            )}
+            {items.length === 0 && (
+              <tr>
+                <td
+                  colSpan={modo === "mover" ? 7 : 6}
+                  className="px-3 py-3 text-sm text-gris-500"
+                >
+                  Todavía no hay ítems cargados.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
 

@@ -34,6 +34,7 @@ export default async function ServicioDetailPage({
       </Link>
 
       <h1 className="mt-2 text-2xl font-semibold text-gris-900">{servicio.nombre}</h1>
+      <p className="mt-1 text-sm text-gris-500">Código {servicio.codigo}</p>
 
       <div className="mt-8 max-w-xl">
         <div className="rounded-lg border border-gris-200 bg-white p-6">

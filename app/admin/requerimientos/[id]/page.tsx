@@ -45,7 +45,13 @@ export default async function RequerimientoDetailPage({
     prisma.requerimiento.findUnique({
       where: { id },
       include: {
-        items: { orderBy: { createdAt: "asc" }, include: { pieza: true, servicio: true } },
+        items: {
+          orderBy: { createdAt: "asc" },
+          include: {
+            pieza: { include: { clase: true, categoria: true } },
+            servicio: { include: { clase: true, categoria: true } },
+          },
+        },
         envios: { orderBy: { enviadoAt: "desc" }, include: { proveedor: true } },
         cotizaciones: {
           orderBy: { createdAt: "asc" },
@@ -102,14 +108,21 @@ export default async function RequerimientoDetailPage({
     requerimiento.tipo === "PRODUCTO"
       ? piezas.map((p) => ({ id: p.id, nombre: p.nombre, unidadMedida: p.unidadMedida }))
       : servicios.map((s) => ({ id: s.id, nombre: s.nombre, unidadMedida: s.unidadMedida }));
-  const itemsResueltos = requerimiento.items.map((item) => ({
-    id: item.id,
-    cantidad: item.cantidad,
-    piezaId: item.piezaId,
-    servicioId: item.servicioId,
-    nombre: nombreItem(item),
-    unidad: item.unidadMedida,
-  }));
+  const itemsResueltos = requerimiento.items.map((item) => {
+    const origen = item.pieza ?? item.servicio;
+    const clase = origen?.clase?.nombre;
+    const categoria = origen?.categoria?.nombre;
+    return {
+      id: item.id,
+      cantidad: item.cantidad,
+      piezaId: item.piezaId,
+      servicioId: item.servicioId,
+      nombre: nombreItem(item),
+      codigo: item.pieza?.codigo ?? item.servicio?.codigo ?? 0,
+      claseCategoria: clase && categoria ? `${clase} / ${categoria}` : clase ?? categoria ?? null,
+      unidad: item.unidadMedida,
+    };
+  });
 
   return (
     <div>
