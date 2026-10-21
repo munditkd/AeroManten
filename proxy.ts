@@ -37,11 +37,33 @@ function esPrefetch(req: NextRequest): boolean {
   );
 }
 
+// Los navegadores exigen que cualquier Set-Cookie para un nombre con
+// prefijo "__Secure-"/"__Host-" (el que usa authjs.session-token en HTTPS)
+// incluya el atributo Secure, o lo ignoran por completo — inclusive para
+// borrarla. Sin esto, en producción (HTTPS) el borrado de sesión por
+// inactividad no hacía nada: la cookie real (__Secure-...) nunca se iba, el
+// usuario seguía autenticado de verdad, y recién se notaba al volver a
+// entrar y encontrarse con un estado raro en vez de un login limpio. En
+// local (HTTP, sin el prefijo) el mismo código sí funcionaba, por eso no se
+// veía ahí.
 function clearSessionCookies(response: NextResponse) {
+  const yaVencida = new Date(0);
   for (const name of SESSION_COOKIE_NAMES) {
-    response.cookies.delete(name);
+    response.cookies.set(name, "", {
+      path: "/",
+      expires: yaVencida,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: name.startsWith("__Secure-") || name.startsWith("__Host-"),
+    });
   }
-  response.cookies.delete(ACTIVITY_COOKIE);
+  response.cookies.set(ACTIVITY_COOKIE, "", {
+    path: "/",
+    expires: yaVencida,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
 }
 
 function cookieName(setCookieEntry: string): string {
