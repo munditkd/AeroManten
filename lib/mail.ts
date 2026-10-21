@@ -1,21 +1,15 @@
-import nodemailer from "nodemailer";
+import { enviarMailBrevo, parsearRemitente } from "./brevo";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT || 587),
-  secure: false, // true para puerto 465, false para el resto (usa STARTTLS)
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
+function remitenteSistema() {
+  return parsearRemitente(process.env.EMAIL_FROM ?? "Aeromanten <no-reply@aeromanten.com.ar>");
+}
 
 export async function sendVerificationEmail(to: string, token: string) {
   const url = `${process.env.NEXTAUTH_URL}/verify-email?token=${token}`;
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to,
+  await enviarMailBrevo({
+    sender: remitenteSistema(),
+    to: [{ email: to }],
     subject: "Verificá tu email",
     html: `
       <p>Hola,</p>
@@ -29,9 +23,9 @@ export async function sendVerificationEmail(to: string, token: string) {
 export async function sendPasswordResetEmail(to: string, token: string) {
   const url = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`;
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to,
+  await enviarMailBrevo({
+    sender: remitenteSistema(),
+    to: [{ email: to }],
     subject: "Recuperar contraseña",
     html: `
       <p>Hola,</p>

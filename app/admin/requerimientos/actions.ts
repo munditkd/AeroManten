@@ -7,7 +7,7 @@ import { verificarPermiso, verificarAprobacionRequerimientos } from "@/lib/permi
 import { verificarSinReferencias } from "@/lib/eliminar-guard";
 import { obtenerEstadoPorStatus, obtenerEstadoPorRstatus } from "@/lib/estados";
 import { crearRequerimientoConCodigo, construirHtmlRequerimientoMail } from "@/lib/requerimientos";
-import { obtenerPropietarioComercial, construirTransporterComercial } from "@/lib/mail-comercial";
+import { obtenerPropietarioComercial, puedeEnviarComercial, enviarMailComercial } from "@/lib/mail-comercial";
 import { ejecutarAccion, type EstadoAccion } from "@/lib/accion-segura";
 import { TipoRequerimiento } from "@prisma/client";
 
@@ -290,10 +290,9 @@ export async function enviarRequerimiento(
     }
 
     const propietario = await obtenerPropietarioComercial();
-    const transporter = propietario ? construirTransporterComercial(propietario) : null;
-    if (!propietario || !transporter) {
+    if (!propietario || !puedeEnviarComercial(propietario)) {
       throw new Error(
-        "Todavía no configuraste la casilla comercial del Propietario (Mail Comercial + credenciales SMTP). Configurala en Propietario antes de enviar Requerimientos."
+        "Todavía no configuraste la casilla comercial del Propietario (Mail Comercial) o falta la BREVO_API_KEY del servidor. Configurala en Propietario antes de enviar Requerimientos."
       );
     }
 
@@ -321,8 +320,8 @@ export async function enviarRequerimiento(
       }
 
       try {
-        await transporter.sendMail({
-          from: `"${nombreEmpresa}" <${propietario.mailComercial}>`,
+        await enviarMailComercial({
+          propietario,
           to: proveedor.email,
           subject: `Pedido de cotización ${requerimiento.codigo} - ${requerimiento.titulo}`,
           html,

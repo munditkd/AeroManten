@@ -2,15 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import {
-  updatePropietario,
-  deletePropietario,
-  probarConexionComercial,
-  quitarCredencialesSmtp,
-} from "../actions";
+import { updatePropietario, deletePropietario } from "../actions";
 import { createAeronave } from "../../aeronaves/actions";
-import { TestConnectionButton } from "@/app/_components/test-connection-button";
-import { ConfirmDeleteButton } from "@/app/_components/confirm-delete-button";
 
 export default async function PropietarioDetailPage({
   params,
@@ -32,9 +25,6 @@ export default async function PropietarioDetailPage({
 
   const updatePropietarioWithId = updatePropietario.bind(null, propietario.id);
   const deletePropietarioWithId = deletePropietario.bind(null, propietario.id);
-  const probarConexionComercialWithId = probarConexionComercial.bind(null, propietario.id);
-  const quitarCredencialesSmtpWithId = quitarCredencialesSmtp.bind(null, propietario.id);
-  const tieneCredencialesSmtp = Boolean(propietario.smtpHost && propietario.smtpUser);
 
   return (
     <div>
@@ -156,8 +146,8 @@ export default async function PropietarioDetailPage({
                     Casilla comercial
                   </h3>
                   <p className="mt-1 text-xs text-gris-400">
-                    Para enviar Requerimientos a Proveedores desde esta dirección en vez de la
-                    del sistema.
+                    Remitente de los Requerimientos a Proveedores. El envío en sí usa la cuenta de
+                    Brevo configurada en el servidor.
                   </p>
                 </div>
                 <div>
@@ -170,69 +160,8 @@ export default async function PropietarioDetailPage({
                     defaultValue={propietario.mailComercial ?? ""}
                     className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
                   />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gris-700">
-                    Servidor SMTP
-                  </label>
-                  <input
-                    name="smtpHost"
-                    placeholder="smtp.gmail.com"
-                    defaultValue={propietario.smtpHost ?? ""}
-                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gris-700">Puerto</label>
-                    <input
-                      name="smtpPort"
-                      type="number"
-                      placeholder="587"
-                      defaultValue={propietario.smtpPort ?? ""}
-                      className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                    />
-                  </div>
-                  <div className="flex items-end pb-2">
-                    <label className="flex items-center gap-2 text-xs font-medium text-gris-700">
-                      <input
-                        name="smtpSeguro"
-                        type="checkbox"
-                        defaultChecked={propietario.smtpSeguro}
-                        className="h-4 w-4"
-                      />
-                      SSL directo (465)
-                    </label>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gris-700">
-                    Usuario SMTP
-                  </label>
-                  <input
-                    name="smtpUser"
-                    defaultValue={propietario.smtpUser ?? ""}
-                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gris-700">
-                    Contraseña SMTP
-                  </label>
-                  <input
-                    name="smtpPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder={
-                      propietario.smtpPasswordEncriptada
-                        ? "•••••••• (dejar en blanco para no cambiarla)"
-                        : "Contraseña de aplicación"
-                    }
-                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                  />
                   <p className="mt-1 text-xs text-gris-400">
-                    Gmail/Outlook requieren una &quot;contraseña de aplicación&quot;, no la
-                    contraseña normal de la cuenta.
+                    Tiene que estar verificado como remitente en Brevo.
                   </p>
                 </div>
               </div>
@@ -244,24 +173,6 @@ export default async function PropietarioDetailPage({
               Guardar cambios
             </button>
           </form>
-
-          {esAdmin && tieneCredencialesSmtp && (
-            <div className="mt-3 space-y-2">
-              <TestConnectionButton
-                action={probarConexionComercialWithId}
-                className="w-full rounded-md border border-gris-300 py-2 text-sm font-medium text-gris-700 hover:bg-gris-50"
-              >
-                Probar conexión SMTP guardada
-              </TestConnectionButton>
-              <ConfirmDeleteButton
-                action={quitarCredencialesSmtpWithId}
-                mensaje="¿Quitar las credenciales SMTP guardadas? El Mail Comercial se mantiene, pero no vas a poder enviar Requerimientos hasta volver a cargarlas."
-                className="w-full rounded-md border border-red-200 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-              >
-                Quitar credenciales SMTP
-              </ConfirmDeleteButton>
-            </div>
-          )}
 
           <form action={deletePropietarioWithId} className="mt-3">
             <button

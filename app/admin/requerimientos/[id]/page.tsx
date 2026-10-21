@@ -26,7 +26,7 @@ import {
   nombreItem,
   unidadItem,
 } from "@/lib/requerimientos";
-import { obtenerPropietarioComercial, construirTransporterComercial } from "@/lib/mail-comercial";
+import { obtenerPropietarioComercial, puedeEnviarComercial } from "@/lib/mail-comercial";
 
 export default async function RequerimientoDetailPage({
   params,
@@ -77,9 +77,7 @@ export default async function RequerimientoDetailPage({
 
   const puedeAprobar =
     session?.user?.role === "ADMIN" || session?.user?.role === "ADMINISTRATIVO";
-  const puedeEnviar = Boolean(
-    propietarioComercial && construirTransporterComercial(propietarioComercial)
-  );
+  const puedeEnviar = puedeEnviarComercial(propietarioComercial);
 
   const requerimientosAbiertos = await prisma.requerimiento.findMany({
     where: {
@@ -309,8 +307,8 @@ export default async function RequerimientoDetailPage({
 
             {puedeAprobar && !puedeEnviar && (
               <p className="mt-3 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
-                Todavía no configuraste la casilla comercial del Propietario. Configurá Mail
-                Comercial y las credenciales SMTP en{" "}
+                Todavía no configuraste el Mail Comercial del Propietario (o falta la API key de
+                Brevo del servidor). Configurá el Mail Comercial en{" "}
                 <Link href="/admin/propietarios" className="font-medium underline">
                   Propietario
                 </Link>{" "}

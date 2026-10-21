@@ -163,8 +163,8 @@ export default async function PropietariosPage() {
                       Casilla comercial
                     </h3>
                     <p className="mt-1 text-xs text-gris-400">
-                      Para enviar Requerimientos a Proveedores desde esta dirección en vez de la
-                      del sistema.
+                      Remitente de los Requerimientos a Proveedores. El envío en sí usa la cuenta
+                      de Brevo configurada en el servidor.
                     </p>
                   </div>
                   <div>
@@ -176,57 +176,8 @@ export default async function PropietariosPage() {
                       type="email"
                       className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gris-700">
-                      Servidor SMTP
-                    </label>
-                    <input
-                      name="smtpHost"
-                      placeholder="smtp.gmail.com"
-                      className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gris-700">Puerto</label>
-                      <input
-                        name="smtpPort"
-                        type="number"
-                        placeholder="587"
-                        className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                      />
-                    </div>
-                    <div className="flex items-end pb-2">
-                      <label className="flex items-center gap-2 text-xs font-medium text-gris-700">
-                        <input name="smtpSeguro" type="checkbox" className="h-4 w-4" />
-                        SSL directo (465)
-                      </label>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gris-700">
-                      Usuario SMTP
-                    </label>
-                    <input
-                      name="smtpUser"
-                      className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gris-700">
-                      Contraseña SMTP
-                    </label>
-                    <input
-                      name="smtpPassword"
-                      type="password"
-                      autoComplete="new-password"
-                      placeholder="Contraseña de aplicación"
-                      className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
-                    />
                     <p className="mt-1 text-xs text-gris-400">
-                      Gmail/Outlook requieren una &quot;contraseña de aplicación&quot;, no la
-                      contraseña normal de la cuenta.
+                      Tiene que estar verificado como remitente en Brevo.
                     </p>
                   </div>
                 </div>

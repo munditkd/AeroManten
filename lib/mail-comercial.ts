@@ -1,14 +1,5 @@
-import nodemailer from "nodemailer";
 import { prisma } from "./prisma";
-import { desencriptar } from "./credenciales";
-
-type DatosSmtpComercial = {
-  smtpHost: string | null;
-  smtpPort: number | null;
-  smtpUser: string | null;
-  smtpPasswordEncriptada: string | null;
-  smtpSeguro: boolean;
-};
+import { enviarMailBrevo } from "./brevo";
 
 // Mismo criterio que obtenerEmpresaPrincipal() (ver lib/configuracion-empresa.ts):
 // en la práctica debería haber un solo Propietario con esto cargado, así que
@@ -17,33 +8,35 @@ export function obtenerPropietarioComercial() {
   return prisma.propietario.findFirst({
     where: { mailComercial: { not: null } },
     orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      empresa: true,
-      mailComercial: true,
-      smtpHost: true,
-      smtpPort: true,
-      smtpUser: true,
-      smtpPasswordEncriptada: true,
-      smtpSeguro: true,
-    },
+    select: { id: true, empresa: true, mailComercial: true },
   });
 }
 
-// null = la casilla comercial todavía no tiene las credenciales SMTP
-// completas (host, usuario y contraseña) cargadas y guardadas.
-export function construirTransporterComercial(propietario: DatosSmtpComercial) {
-  if (!propietario.smtpHost || !propietario.smtpUser || !propietario.smtpPasswordEncriptada) {
-    return null;
+// false = falta el Mail Comercial del Propietario, o la BREVO_API_KEY del
+// servidor (ver lib/brevo.ts) — en cualquiera de los dos casos no se puede
+// enviar todavía.
+export function puedeEnviarComercial(
+  propietario: { mailComercial: string | null } | null
+): boolean {
+  return Boolean(propietario?.mailComercial && process.env.BREVO_API_KEY);
+}
+
+// El remitente visible es "{Empresa} <mailComercial>" — el Proveedor que
+// responda el mail le contesta directo a esa casilla.
+export async function enviarMailComercial(datos: {
+  propietario: { empresa: string | null; mailComercial: string | null };
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<void> {
+  if (!datos.propietario.mailComercial) {
+    throw new Error("Todavía no configuraste el Mail Comercial del Propietario");
   }
 
-  return nodemailer.createTransport({
-    host: propietario.smtpHost,
-    port: propietario.smtpPort ?? 587,
-    secure: propietario.smtpSeguro,
-    auth: {
-      user: propietario.smtpUser,
-      pass: desencriptar(propietario.smtpPasswordEncriptada),
-    },
+  await enviarMailBrevo({
+    sender: { name: datos.propietario.empresa ?? "AeroManten", email: datos.propietario.mailComercial },
+    to: [{ email: datos.to }],
+    subject: datos.subject,
+    html: datos.html,
   });
 }
