@@ -20,12 +20,7 @@ import { ConfirmDeleteButton } from "@/app/_components/confirm-delete-button";
 import { ItemsList } from "../items-list";
 import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
 import { obtenerEstados, claseBadgeEstado } from "@/lib/estados";
-import {
-  TIPOS_REQUERIMIENTO,
-  TIPO_REQUERIMIENTO_LABEL,
-  nombreItem,
-  unidadItem,
-} from "@/lib/requerimientos";
+import { TIPOS_REQUERIMIENTO, TIPO_REQUERIMIENTO_LABEL, nombreItem } from "@/lib/requerimientos";
 import { obtenerPropietarioComercial, puedeEnviarComercial } from "@/lib/mail-comercial";
 
 export default async function RequerimientoDetailPage({
@@ -113,7 +108,7 @@ export default async function RequerimientoDetailPage({
     piezaId: item.piezaId,
     servicioId: item.servicioId,
     nombre: nombreItem(item),
-    unidad: unidadItem(item),
+    unidad: item.unidadMedida,
   }));
 
   return (

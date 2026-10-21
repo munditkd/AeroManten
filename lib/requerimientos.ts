@@ -40,19 +40,18 @@ export async function crearRequerimientoConCodigo(
 
 type ItemParaMail = {
   cantidad: number;
-  pieza: { nombre: string; unidadMedida: string } | null;
-  servicio: { nombre: string; unidadMedida: string } | null;
+  unidadMedida: string;
+  pieza: { nombre: string } | null;
+  servicio: { nombre: string } | null;
 };
 
 // Lo pedido siempre sale de la Pieza o el Servicio referenciado, nunca de
 // texto libre (ver RequerimientoItem en schema.prisma). Se usa tanto acá
-// como en la UI del detalle del Requerimiento.
+// como en la UI del detalle del Requerimiento. La unidad de medida, en
+// cambio, es una foto guardada en el propio ítem (ver unidadMedida en
+// schema.prisma), no se vuelve a leer del catálogo.
 export function nombreItem(item: { pieza: { nombre: string } | null; servicio: { nombre: string } | null }): string {
   return item.pieza?.nombre ?? item.servicio?.nombre ?? "—";
-}
-
-export function unidadItem(item: { pieza: { unidadMedida: string } | null; servicio: { unidadMedida: string } | null }): string {
-  return item.pieza?.unidadMedida ?? item.servicio?.unidadMedida ?? "";
 }
 
 function escapeHtml(valor: string): string {
@@ -77,7 +76,7 @@ export function construirHtmlRequerimientoMail(requerimiento: {
         <tr>
           <td style="padding:6px 10px;border:1px solid #ddd;">${escapeHtml(nombreItem(item))}</td>
           <td style="padding:6px 10px;border:1px solid #ddd;text-align:right;">${item.cantidad}</td>
-          <td style="padding:6px 10px;border:1px solid #ddd;">${escapeHtml(unidadItem(item))}</td>
+          <td style="padding:6px 10px;border:1px solid #ddd;">${escapeHtml(item.unidadMedida)}</td>
         </tr>`
     )
     .join("");

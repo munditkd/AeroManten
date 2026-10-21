@@ -142,11 +142,22 @@ export async function createItem(
     if (requerimiento.tipo === "PRODUCTO") {
       const piezaId = str(formData, "piezaId");
       if (!piezaId) throw new Error("Elegí una pieza");
-      await prisma.requerimientoItem.create({ data: { requerimientoId, piezaId, cantidad } });
+      const pieza = await prisma.pieza.findUnique({ where: { id: piezaId }, select: { unidadMedida: true } });
+      if (!pieza) throw new Error("La pieza elegida no existe");
+      await prisma.requerimientoItem.create({
+        data: { requerimientoId, piezaId, cantidad, unidadMedida: pieza.unidadMedida },
+      });
     } else {
       const servicioId = str(formData, "servicioId");
       if (!servicioId) throw new Error("Elegí un servicio");
-      await prisma.requerimientoItem.create({ data: { requerimientoId, servicioId, cantidad } });
+      const servicio = await prisma.servicio.findUnique({
+        where: { id: servicioId },
+        select: { unidadMedida: true },
+      });
+      if (!servicio) throw new Error("El servicio elegido no existe");
+      await prisma.requerimientoItem.create({
+        data: { requerimientoId, servicioId, cantidad, unidadMedida: servicio.unidadMedida },
+      });
     }
 
     revalidatePath(`/admin/requerimientos/${requerimientoId}`);
@@ -185,16 +196,23 @@ export async function updateItem(
     if (requerimiento.tipo === "PRODUCTO") {
       const piezaId = str(formData, "piezaId");
       if (!piezaId) throw new Error("Elegí una pieza");
+      const pieza = await prisma.pieza.findUnique({ where: { id: piezaId }, select: { unidadMedida: true } });
+      if (!pieza) throw new Error("La pieza elegida no existe");
       await prisma.requerimientoItem.update({
         where: { id: itemId },
-        data: { piezaId, servicioId: null, cantidad },
+        data: { piezaId, servicioId: null, cantidad, unidadMedida: pieza.unidadMedida },
       });
     } else {
       const servicioId = str(formData, "servicioId");
       if (!servicioId) throw new Error("Elegí un servicio");
+      const servicio = await prisma.servicio.findUnique({
+        where: { id: servicioId },
+        select: { unidadMedida: true },
+      });
+      if (!servicio) throw new Error("El servicio elegido no existe");
       await prisma.requerimientoItem.update({
         where: { id: itemId },
-        data: { servicioId, piezaId: null, cantidad },
+        data: { servicioId, piezaId: null, cantidad, unidadMedida: servicio.unidadMedida },
       });
     }
 

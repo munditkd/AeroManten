@@ -586,6 +586,11 @@ model RequerimientoItem {
   piezaId         String?
   servicioId      String?
   cantidad        Float
+  // Foto de la unidad de medida de la Pieza/Servicio al momento de cargar o
+  // editar la línea (no se re-lee en vivo del catálogo): si después alguien
+  // corrige la unidad en Piezas/Servicios, esta línea conserva la unidad con
+  // la que se pidió de verdad.
+  unidadMedida    String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
