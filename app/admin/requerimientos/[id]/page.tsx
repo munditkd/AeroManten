@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import {
   updateRequerimiento,
   deleteRequerimiento,
@@ -23,7 +24,7 @@ export default async function RequerimientoDetailPage({
 }) {
   const { id } = await params;
 
-  const [requerimiento, clases, categorias, estados, proveedores, propietarioComercial] =
+  const [requerimiento, clases, categorias, estados, proveedores, propietarioComercial, session] =
     await Promise.all([
       prisma.requerimiento.findUnique({
         where: { id },
@@ -41,10 +42,12 @@ export default async function RequerimientoDetailPage({
         include: { clase: true, categoria: true },
       }),
       obtenerPropietarioComercial(),
+      auth(),
     ]);
 
   if (!requerimiento) notFound();
 
+  const esAdmin = session?.user?.role === "ADMIN";
   const puedeEnviar = Boolean(
     propietarioComercial && construirTransporterComercial(propietarioComercial)
   );
@@ -227,7 +230,14 @@ export default async function RequerimientoDetailPage({
           <div className="rounded-lg border border-gris-200 bg-white p-6">
             <h2 className="text-sm font-semibold text-gris-900">Enviar a Proveedores</h2>
 
-            {!puedeEnviar && (
+            {!esAdmin && (
+              <p className="mt-3 rounded-md border border-gris-200 bg-gris-50 px-3 py-2 text-xs text-gris-600">
+                Elegir los proveedores y aprobar el envío de este requerimiento es exclusivo de un
+                administrador.
+              </p>
+            )}
+
+            {esAdmin && !puedeEnviar && (
               <p className="mt-3 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
                 Todavía no configuraste la casilla comercial del Propietario. Configurá Mail
                 Comercial y las credenciales SMTP en{" "}
@@ -238,7 +248,7 @@ export default async function RequerimientoDetailPage({
               </p>
             )}
 
-            {puedeEnviar && (
+            {esAdmin && puedeEnviar && (
               <ActionForm action={enviarRequerimientoWithId} className="mt-4 space-y-3">
                 <ul className="max-h-80 space-y-1 overflow-y-auto rounded-md border border-gris-200 p-2">
                   {proveedores.map((proveedor) => {

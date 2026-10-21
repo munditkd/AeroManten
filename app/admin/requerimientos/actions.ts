@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { verificarPermiso } from "@/lib/permisos";
+import { verificarPermiso, verificarAdmin } from "@/lib/permisos";
 import { verificarSinReferencias } from "@/lib/eliminar-guard";
 import { obtenerEstadoPorStatus } from "@/lib/estados";
 import { crearRequerimientoConCodigo, construirHtmlRequerimientoMail } from "@/lib/requerimientos";
@@ -157,13 +157,16 @@ export async function deleteItem(requerimientoId: string, itemId: string): Promi
 // casilla comercial del Propietario (ver lib/mail-comercial.ts). Reenviar a
 // un Proveedor ya notificado actualiza su mismo registro de envío (ver
 // @@unique en RequerimientoEnvio) en vez de duplicarlo.
+// Cualquier usuario con permiso puede crear un Requerimiento y cargar sus
+// ítems, pero elegir los Proveedores y aprobar el envío de los mails es
+// exclusivo de ADMIN (ver también el gate en app/admin/requerimientos/[id]/page.tsx).
 export async function enviarRequerimiento(
   requerimientoId: string,
   _prevState: EstadoAccion,
   formData: FormData
 ): Promise<EstadoAccion> {
   return ejecutarAccion(async () => {
-    await verificarPermiso("modificar");
+    await verificarAdmin();
 
     const proveedorIds = formData.getAll("proveedorIds").filter((v): v is string => typeof v === "string");
     if (proveedorIds.length === 0) {
