@@ -12,6 +12,7 @@ const ITEMS = [
   { href: "/admin/ordenes-trabajo", label: "Órdenes de Trabajo" },
   { href: "/admin/piezas", label: "Piezas" },
   { href: "/admin/servicios", label: "Servicios" },
+  { href: "/admin/requerimientos", label: "Requerimientos" },
 ];
 
 export function OperacionesMenu() {
