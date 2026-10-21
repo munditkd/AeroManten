@@ -105,21 +105,32 @@ model VerificationToken {
 }
 
 model Propietario {
-  id          String   @id @default(cuid())
-  nombre      String
-  documento   String?
-  telefono    String?
-  email       String?
-  direccion   String?
+  id                     String   @id @default(cuid())
+  nombre                 String
+  documento              String?
+  telefono               String?
+  email                  String?
+  direccion              String?
   // Empresa que usa el software (AEROMANTEN es el nombre del software, no
   // cambia) + su logo, usados en la franja azul del encabezado y en los
   // reportes (ver lib/configuracion-empresa.ts). En la práctica debería
   // haber un solo Propietario con esto cargado. Edición exclusiva de ADMIN,
   // aunque viva en esta misma pantalla (ver app/admin/propietarios/actions.ts).
-  empresa     String?
-  logoDataUrl String?  @db.MediumText
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  empresa                String?
+  logoDataUrl            String?  @db.MediumText
+  // Casilla comercial + credenciales SMTP propias, usadas para que los
+  // Requerimientos a Proveedores (ver Requerimiento) salgan realmente desde
+  // esta dirección en vez de la del sistema. La contraseña se guarda
+  // encriptada (ver lib/credenciales.ts) y nunca se vuelve a mostrar una vez
+  // guardada. Edición exclusiva de ADMIN, igual que Empresa/Logo.
+  mailComercial          String?
+  smtpHost               String?
+  smtpPort               Int?
+  smtpUser               String?
+  smtpPasswordEncriptada String?  @db.Text
+  smtpSeguro             Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   aeronaves Aeronave[]
 
