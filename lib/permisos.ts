@@ -41,3 +41,17 @@ export async function verificarAdmin() {
     throw new Error("Esta acción es exclusiva para administradores.");
   }
 }
+
+// Elegir Proveedores y aprobar el envío/recepción de Requerimientos y
+// Cotizaciones es prerrogativa de ADMIN y ADMINISTRATIVO (cualquier otro
+// usuario con permiso puede crear el Requerimiento y cargar sus ítems, pero
+// no esto). Ambos roles existen siempre (ver enum Role en schema.prisma).
+export async function verificarAprobacionRequerimientos() {
+  const session = await auth();
+  const role = session?.user?.role;
+  if (role !== "ADMIN" && role !== "ADMINISTRATIVO") {
+    throw new Error(
+      "Elegir proveedores y aprobar Requerimientos/Cotizaciones es exclusivo de un administrador o administrativo."
+    );
+  }
+}

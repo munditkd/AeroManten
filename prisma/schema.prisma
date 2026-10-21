@@ -18,6 +18,10 @@ datasource db {
 
 enum Role {
   USER
+  // Temas de oficina (contratos, pedidos, recursos humanos, etc.) y
+  // aprobación de Requerimientos/Cotizaciones a Proveedores (ver
+  // lib/permisos.ts). No tiene los privilegios totales de ADMIN.
+  ADMINISTRATIVO
   ADMIN
 }
 
@@ -373,6 +377,7 @@ model Estado {
   aeronaves           Aeronave[]
   ordenesTrabajoTarea OrdenTrabajoTarea[]
   requerimientos      Requerimiento[]
+  cotizaciones        Cotizacion[]
 
   @@unique([tabla, propiedad, status])
   @@map("estados")
@@ -526,9 +531,10 @@ model Proveedor {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  clase     Clase?               @relation(fields: [claseId], references: [id])
-  categoria Categoria?           @relation(fields: [categoriaId], references: [id])
-  envios    RequerimientoEnvio[]
+  clase        Clase?               @relation(fields: [claseId], references: [id])
+  categoria    Categoria?           @relation(fields: [categoriaId], references: [id])
+  envios       RequerimientoEnvio[]
+  cotizaciones Cotizacion[]
 
   @@map("proveedores")
 }
@@ -564,8 +570,9 @@ model Requerimiento {
   categoria Categoria? @relation(fields: [categoriaId], references: [id])
   estado    Estado     @relation(fields: [estadoId], references: [id])
 
-  items  RequerimientoItem[]
-  envios RequerimientoEnvio[]
+  items        RequerimientoItem[]
+  envios       RequerimientoEnvio[]
+  cotizaciones Cotizacion[]
 
   @@map("requerimientos")
 }
@@ -579,7 +586,8 @@ model RequerimientoItem {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  requerimiento Requerimiento @relation(fields: [requerimientoId], references: [id], onDelete: Cascade)
+  requerimiento   Requerimiento    @relation(fields: [requerimientoId], references: [id], onDelete: Cascade)
+  cotizacionItems CotizacionItem[]
 
   @@map("requerimientos_items")
 }
@@ -603,6 +611,47 @@ model RequerimientoEnvio {
 
   @@unique([requerimientoId, proveedorId])
   @@map("requerimientos_envios")
+}
+
+// Respuesta de un Proveedor a un Requerimiento, cargada a mano por
+// ADMIN/ADMINISTRATIVO en base a lo que contestó por mail (no hay portal
+// externo para que el Proveedor la cargue solo). Precio por ítem (ver
+// CotizacionItem) + adjunto opcional del presupuesto original. Un Proveedor
+// tiene a lo sumo una Cotización por Requerimiento (ver @@unique); volver a
+// cargarla la reemplaza. Cuando el Estado elegido tiene rstatus "ACEPTADA",
+// el Requerimiento se cierra solo (ver app/admin/requerimientos/actions.ts).
+model Cotizacion {
+  id              String   @id @default(cuid())
+  requerimientoId String
+  proveedorId     String
+  fecha           DateTime @default(now())
+  estadoId        String
+  observaciones   String?  @db.Text
+  adjuntoDataUrl  String?  @db.MediumText
+  adjuntoNombre   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  requerimiento Requerimiento    @relation(fields: [requerimientoId], references: [id], onDelete: Cascade)
+  proveedor     Proveedor        @relation(fields: [proveedorId], references: [id])
+  estado        Estado           @relation(fields: [estadoId], references: [id])
+  items         CotizacionItem[]
+
+  @@unique([requerimientoId, proveedorId])
+  @@map("cotizaciones")
+}
+
+model CotizacionItem {
+  id                  String @id @default(cuid())
+  cotizacionId        String
+  requerimientoItemId String
+  precioUnitario      Float
+
+  cotizacion        Cotizacion        @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+  requerimientoItem RequerimientoItem @relation(fields: [requerimientoItemId], references: [id])
+
+  @@unique([cotizacionId, requerimientoItemId])
+  @@map("cotizaciones_items")
 }
 
 // Piezas sin número de serie usadas como insumo en mantenimiento (caños,

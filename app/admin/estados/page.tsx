@@ -100,7 +100,7 @@ export default async function EstadosPage() {
                   className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
                 />
                 <p className="mt-1 text-xs text-gris-400">
-                  Por ahora siempre "estado"; queda libre para usos futuros.
+                  Por ahora siempre &quot;estado&quot;; queda libre para usos futuros.
                 </p>
               </div>
               <div>
@@ -130,8 +130,10 @@ export default async function EstadosPage() {
                   ))}
                 </select>
                 <p className="mt-1 text-xs text-gris-400">
-                  Para OT: ABIERTA/CERRADA. Para Activo/Aeronave:
-                  OPERATIVO/NO_OPERATIVO/BAJA.
+                  Para OT/Requerimiento: ABIERTA/CERRADA. Para Activo/Aeronave:
+                  OPERATIVO/NO_OPERATIVO/BAJA. Para Cotización: ACEPTADA/RECHAZADA (también puede
+                  usar ABIERTA/CERRADA para estados intermedios). Aceptar una Cotización cierra
+                  sola el Requerimiento si existe un estado CERRADA cargado para Requerimiento.
                 </p>
               </div>
               <label className="flex items-center gap-2 text-sm font-medium text-gris-700">

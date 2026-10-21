@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { verificarPermiso, verificarAdmin } from "@/lib/permisos";
+import { verificarPermiso, verificarAprobacionRequerimientos } from "@/lib/permisos";
 import { verificarSinReferencias } from "@/lib/eliminar-guard";
-import { obtenerEstadoPorStatus } from "@/lib/estados";
+import { obtenerEstadoPorStatus, obtenerEstadoPorRstatus } from "@/lib/estados";
 import { crearRequerimientoConCodigo, construirHtmlRequerimientoMail } from "@/lib/requerimientos";
 import { obtenerPropietarioComercial, construirTransporterComercial } from "@/lib/mail-comercial";
 import { ejecutarAccion, type EstadoAccion } from "@/lib/accion-segura";
@@ -106,9 +106,11 @@ export async function deleteRequerimiento(id: string): Promise<EstadoAccion> {
 
     const items = await prisma.requerimientoItem.count({ where: { requerimientoId: id } });
     const envios = await prisma.requerimientoEnvio.count({ where: { requerimientoId: id } });
+    const cotizaciones = await prisma.cotizacion.count({ where: { requerimientoId: id } });
     verificarSinReferencias([
       { nombre: "Ítems cargados", cantidad: items },
       { nombre: "Envíos registrados", cantidad: envios },
+      { nombre: "Cotizaciones cargadas", cantidad: cotizaciones },
     ]);
 
     await prisma.requerimiento.delete({ where: { id } });
@@ -159,14 +161,15 @@ export async function deleteItem(requerimientoId: string, itemId: string): Promi
 // @@unique en RequerimientoEnvio) en vez de duplicarlo.
 // Cualquier usuario con permiso puede crear un Requerimiento y cargar sus
 // ítems, pero elegir los Proveedores y aprobar el envío de los mails es
-// exclusivo de ADMIN (ver también el gate en app/admin/requerimientos/[id]/page.tsx).
+// prerrogativa de ADMIN/ADMINISTRATIVO (ver también el gate en
+// app/admin/requerimientos/[id]/page.tsx).
 export async function enviarRequerimiento(
   requerimientoId: string,
   _prevState: EstadoAccion,
   formData: FormData
 ): Promise<EstadoAccion> {
   return ejecutarAccion(async () => {
-    await verificarAdmin();
+    await verificarAprobacionRequerimientos();
 
     const proveedorIds = formData.getAll("proveedorIds").filter((v): v is string => typeof v === "string");
     if (proveedorIds.length === 0) {
@@ -255,5 +258,157 @@ export async function enviarRequerimiento(
         `Se envió a ${proveedores.length - errores.length} de ${proveedores.length} proveedores. Fallaron: ${errores.join("; ")}`
       );
     }
+  });
+}
+
+const TIPOS_ADJUNTO_PERMITIDOS = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+const TAMANO_MAXIMO_ADJUNTO = 5 * 1024 * 1024; // 5 MB
+
+async function datosAdjuntoCotizacion(
+  formData: FormData
+): Promise<{ adjuntoDataUrl?: string; adjuntoNombre?: string }> {
+  const archivo = formData.get("adjunto");
+  if (!(archivo instanceof File) || archivo.size === 0) return {};
+
+  if (!TIPOS_ADJUNTO_PERMITIDOS.includes(archivo.type)) {
+    throw new Error("El adjunto tiene que ser un PDF, PNG, JPG o WEBP");
+  }
+  if (archivo.size > TAMANO_MAXIMO_ADJUNTO) {
+    throw new Error("El adjunto no puede superar los 5 MB");
+  }
+
+  const buffer = Buffer.from(await archivo.arrayBuffer());
+  return {
+    adjuntoDataUrl: `data:${archivo.type};base64,${buffer.toString("base64")}`,
+    adjuntoNombre: archivo.name,
+  };
+}
+
+// Un ítem sin precio cargado significa "el proveedor no cotizó esto", no un
+// error: se omite en vez de exigir un valor para todos los ítems.
+function datosCotizacionItems(
+  formData: FormData,
+  items: { id: string }[]
+): { requerimientoItemId: string; precioUnitario: number }[] {
+  const resultado: { requerimientoItemId: string; precioUnitario: number }[] = [];
+  for (const item of items) {
+    const valor = str(formData, `precio_${item.id}`);
+    if (valor === undefined) continue;
+    const precio = Number(valor);
+    if (Number.isNaN(precio) || precio < 0) continue;
+    resultado.push({ requerimientoItemId: item.id, precioUnitario: precio });
+  }
+  return resultado;
+}
+
+// Si el Estado elegido tiene rstatus "ACEPTADA", el Requerimiento pasa solo
+// al primer Estado de tabla "Requerimiento" con rstatus "CERRADA" (si hay
+// uno cargado en Administración → Estados; si no, no rompe el guardado,
+// simplemente no se cierra solo).
+async function cerrarRequerimientoSiCorresponde(requerimientoId: string, estadoId: string) {
+  const estado = await prisma.estado.findUnique({ where: { id: estadoId } });
+  if (estado?.rstatus !== "ACEPTADA") return;
+
+  const cerrado = await obtenerEstadoPorRstatus("Requerimiento", "CERRADA");
+  if (!cerrado) return;
+
+  await prisma.requerimiento.update({
+    where: { id: requerimientoId },
+    data: { estadoId: cerrado.id },
+  });
+}
+
+// Cargar la respuesta de un Proveedor (cotización) también es prerrogativa
+// de ADMIN/ADMINISTRATIVO, igual que enviarRequerimiento.
+export async function createCotizacion(
+  requerimientoId: string,
+  _prevState: EstadoAccion,
+  formData: FormData
+): Promise<EstadoAccion> {
+  return ejecutarAccion(async () => {
+    await verificarAprobacionRequerimientos();
+
+    const proveedorId = str(formData, "proveedorId");
+    const estadoId = str(formData, "estadoId");
+    if (!proveedorId || !estadoId) {
+      throw new Error("Proveedor y estado son obligatorios");
+    }
+
+    const requerimiento = await prisma.requerimiento.findUnique({
+      where: { id: requerimientoId },
+      include: { items: true },
+    });
+    if (!requerimiento) throw new Error("Requerimiento no encontrado");
+
+    const existente = await prisma.cotizacion.findUnique({
+      where: { requerimientoId_proveedorId: { requerimientoId, proveedorId } },
+    });
+    if (existente) {
+      throw new Error("Este proveedor ya tiene una cotización cargada para este requerimiento. Editá esa en vez de crear otra.");
+    }
+
+    await prisma.cotizacion.create({
+      data: {
+        requerimientoId,
+        proveedorId,
+        estadoId,
+        observaciones: str(formData, "observaciones") ?? null,
+        ...(await datosAdjuntoCotizacion(formData)),
+        items: { create: datosCotizacionItems(formData, requerimiento.items) },
+      },
+    });
+
+    await cerrarRequerimientoSiCorresponde(requerimientoId, estadoId);
+
+    revalidatePath(`/admin/requerimientos/${requerimientoId}`);
+  });
+}
+
+export async function updateCotizacion(
+  requerimientoId: string,
+  cotizacionId: string,
+  _prevState: EstadoAccion,
+  formData: FormData
+): Promise<EstadoAccion> {
+  return ejecutarAccion(async () => {
+    await verificarAprobacionRequerimientos();
+
+    const estadoId = str(formData, "estadoId");
+    if (!estadoId) throw new Error("El estado es obligatorio");
+
+    const requerimiento = await prisma.requerimiento.findUnique({
+      where: { id: requerimientoId },
+      include: { items: true },
+    });
+    if (!requerimiento) throw new Error("Requerimiento no encontrado");
+
+    await prisma.$transaction([
+      prisma.cotizacionItem.deleteMany({ where: { cotizacionId } }),
+      prisma.cotizacion.update({
+        where: { id: cotizacionId },
+        data: {
+          estadoId,
+          observaciones: str(formData, "observaciones") ?? null,
+          ...(await datosAdjuntoCotizacion(formData)),
+          items: { create: datosCotizacionItems(formData, requerimiento.items) },
+        },
+      }),
+    ]);
+
+    await cerrarRequerimientoSiCorresponde(requerimientoId, estadoId);
+
+    revalidatePath(`/admin/requerimientos/${requerimientoId}`);
+  });
+}
+
+export async function deleteCotizacion(
+  requerimientoId: string,
+  cotizacionId: string
+): Promise<EstadoAccion> {
+  return ejecutarAccion(async () => {
+    await verificarAprobacionRequerimientos();
+
+    await prisma.cotizacion.delete({ where: { id: cotizacionId } });
+    revalidatePath(`/admin/requerimientos/${requerimientoId}`);
   });
 }

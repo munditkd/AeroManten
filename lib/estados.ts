@@ -9,6 +9,7 @@ export const TABLAS_ESTADO = [
   "Activo",
   "Aeronave",
   "Requerimiento",
+  "Cotizacion",
 ] as const;
 
 // RSTATUS conocidos por el código (definen colores y, a futuro, lógica de
@@ -19,6 +20,8 @@ export const RSTATUS_OPCIONES = [
   "OPERATIVO",
   "NO_OPERATIVO",
   "BAJA",
+  "ACEPTADA",
+  "RECHAZADA",
 ] as const;
 
 // Estados disponibles para un campo de una entidad (ej. tabla="OrdenTrabajo",
@@ -36,6 +39,13 @@ export function obtenerEstadoPorStatus(tabla: string, status: string, propiedad 
   return prisma.estado.findFirst({ where: { tabla, propiedad, status } });
 }
 
+// Busca un estado por su RSTATUS (categoría fija) en vez de por su etiqueta
+// editable (ej. para cerrar un Requerimiento solo cuando se acepta una
+// Cotización, sin depender de que el estado "Cerrado" se llame justo así).
+export function obtenerEstadoPorRstatus(tabla: string, rstatus: string, propiedad = "estado") {
+  return prisma.estado.findFirst({ where: { tabla, propiedad, rstatus } });
+}
+
 // Color del badge según la categoría fija (RSTATUS), no según la etiqueta
 // editable (STATUS) — así el color no se rompe si alguien renombra un estado.
 const RSTATUS_BADGE_CLASS: Record<string, string> = {
@@ -44,6 +54,8 @@ const RSTATUS_BADGE_CLASS: Record<string, string> = {
   OPERATIVO: "bg-green-100 text-green-700",
   NO_OPERATIVO: "bg-red-100 text-red-700",
   BAJA: "bg-gris-200 text-gris-600",
+  ACEPTADA: "bg-green-100 text-green-700",
+  RECHAZADA: "bg-red-100 text-red-700",
 };
 
 export function claseBadgeEstado(rstatus: string): string {

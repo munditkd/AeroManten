@@ -83,7 +83,11 @@ export async function deleteProveedor(id: string): Promise<EstadoAccion> {
     await verificarPermiso("borrar");
 
     const envios = await prisma.requerimientoEnvio.count({ where: { proveedorId: id } });
-    verificarSinReferencias([{ nombre: "Envíos de Requerimientos", cantidad: envios }]);
+    const cotizaciones = await prisma.cotizacion.count({ where: { proveedorId: id } });
+    verificarSinReferencias([
+      { nombre: "Envíos de Requerimientos", cantidad: envios },
+      { nombre: "Cotizaciones cargadas", cantidad: cotizaciones },
+    ]);
 
     await prisma.proveedor.delete({ where: { id } });
     revalidatePath("/admin/proveedores");
