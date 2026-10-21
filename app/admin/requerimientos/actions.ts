@@ -119,6 +119,10 @@ export async function deleteRequerimiento(id: string): Promise<EstadoAccion> {
   });
 }
 
+// Lo pedido sale siempre del catálogo de Piezas o Servicios según el tipo
+// del Requerimiento (nunca texto libre — ver RequerimientoItem en
+// schema.prisma), para que dos pedidos del mismo producto se puedan
+// reconocer como "lo mismo" al usar moverItems.
 export async function createItem(
   requerimientoId: string,
   _prevState: EstadoAccion,
@@ -127,20 +131,23 @@ export async function createItem(
   return ejecutarAccion(async () => {
     await verificarPermiso("insertar");
 
-    const descripcion = str(formData, "descripcion");
+    const requerimiento = await prisma.requerimiento.findUnique({ where: { id: requerimientoId } });
+    if (!requerimiento) throw new Error("Requerimiento no encontrado");
+
     const cantidad = num(formData, "cantidad");
-    if (!descripcion || cantidad === undefined) {
-      throw new Error("Descripción y cantidad son obligatorias");
+    if (cantidad === undefined || cantidad <= 0) {
+      throw new Error("La cantidad es obligatoria y tiene que ser mayor a 0");
     }
 
-    await prisma.requerimientoItem.create({
-      data: {
-        requerimientoId,
-        descripcion,
-        cantidad,
-        unidadMedida: str(formData, "unidadMedida") ?? null,
-      },
-    });
+    if (requerimiento.tipo === "PRODUCTO") {
+      const piezaId = str(formData, "piezaId");
+      if (!piezaId) throw new Error("Elegí una pieza");
+      await prisma.requerimientoItem.create({ data: { requerimientoId, piezaId, cantidad } });
+    } else {
+      const servicioId = str(formData, "servicioId");
+      if (!servicioId) throw new Error("Elegí un servicio");
+      await prisma.requerimientoItem.create({ data: { requerimientoId, servicioId, cantidad } });
+    }
 
     revalidatePath(`/admin/requerimientos/${requerimientoId}`);
   });
@@ -152,6 +159,103 @@ export async function deleteItem(requerimientoId: string, itemId: string): Promi
 
     await prisma.requerimientoItem.delete({ where: { id: itemId } });
     revalidatePath(`/admin/requerimientos/${requerimientoId}`);
+  });
+}
+
+// Editar la pieza/servicio o cantidad de un ítem ya cargado es prerrogativa
+// de ADMIN/ADMINISTRATIVO (agregar/quitar ítems arriba sigue abierto a
+// cualquier usuario con permiso).
+export async function updateItem(
+  requerimientoId: string,
+  itemId: string,
+  _prevState: EstadoAccion,
+  formData: FormData
+): Promise<EstadoAccion> {
+  return ejecutarAccion(async () => {
+    await verificarAprobacionRequerimientos();
+
+    const requerimiento = await prisma.requerimiento.findUnique({ where: { id: requerimientoId } });
+    if (!requerimiento) throw new Error("Requerimiento no encontrado");
+
+    const cantidad = num(formData, "cantidad");
+    if (cantidad === undefined || cantidad <= 0) {
+      throw new Error("La cantidad es obligatoria y tiene que ser mayor a 0");
+    }
+
+    if (requerimiento.tipo === "PRODUCTO") {
+      const piezaId = str(formData, "piezaId");
+      if (!piezaId) throw new Error("Elegí una pieza");
+      await prisma.requerimientoItem.update({
+        where: { id: itemId },
+        data: { piezaId, servicioId: null, cantidad },
+      });
+    } else {
+      const servicioId = str(formData, "servicioId");
+      if (!servicioId) throw new Error("Elegí un servicio");
+      await prisma.requerimientoItem.update({
+        where: { id: itemId },
+        data: { servicioId, piezaId: null, cantidad },
+      });
+    }
+
+    revalidatePath(`/admin/requerimientos/${requerimientoId}`);
+  });
+}
+
+// Mueve ítems elegidos de un Requerimiento a otro abierto del mismo tipo,
+// para no duplicar pedidos de lo mismo entre requerimientos distintos (ver
+// pedido del usuario). Si el destino ya tiene un ítem de la misma Pieza o
+// Servicio, suma las cantidades y borra la línea de origen en vez de
+// duplicarla; si no, directamente la reasigna al destino. Prerrogativa de
+// ADMIN/ADMINISTRATIVO, igual que editar un ítem.
+export async function moverItems(
+  origenId: string,
+  _prevState: EstadoAccion,
+  formData: FormData
+): Promise<EstadoAccion> {
+  return ejecutarAccion(async () => {
+    await verificarAprobacionRequerimientos();
+
+    const destinoId = str(formData, "destinoId");
+    const itemIds = formData.getAll("itemIds").filter((v): v is string => typeof v === "string");
+    if (!destinoId) throw new Error("Elegí a qué requerimiento mover");
+    if (itemIds.length === 0) throw new Error("Elegí al menos un ítem para mover");
+    if (destinoId === origenId) throw new Error("El destino tiene que ser un requerimiento distinto");
+
+    const [origen, destino, items] = await Promise.all([
+      prisma.requerimiento.findUnique({ where: { id: origenId } }),
+      prisma.requerimiento.findUnique({ where: { id: destinoId }, include: { items: true } }),
+      prisma.requerimientoItem.findMany({ where: { id: { in: itemIds }, requerimientoId: origenId } }),
+    ]);
+    if (!origen || !destino) throw new Error("Requerimiento no encontrado");
+    if (origen.tipo !== destino.tipo) {
+      throw new Error("Solo se puede mover entre requerimientos del mismo tipo (Producto o Servicio)");
+    }
+    if (items.length === 0) throw new Error("No se encontraron los ítems a mover");
+
+    await prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        const existenteEnDestino = destino.items.find((di) =>
+          item.piezaId ? di.piezaId === item.piezaId : di.servicioId === item.servicioId
+        );
+
+        if (existenteEnDestino) {
+          await tx.requerimientoItem.update({
+            where: { id: existenteEnDestino.id },
+            data: { cantidad: existenteEnDestino.cantidad + item.cantidad },
+          });
+          await tx.requerimientoItem.delete({ where: { id: item.id } });
+        } else {
+          await tx.requerimientoItem.update({
+            where: { id: item.id },
+            data: { requerimientoId: destinoId },
+          });
+        }
+      }
+    });
+
+    revalidatePath(`/admin/requerimientos/${origenId}`);
+    revalidatePath(`/admin/requerimientos/${destinoId}`);
   });
 }
 
@@ -178,7 +282,7 @@ export async function enviarRequerimiento(
 
     const requerimiento = await prisma.requerimiento.findUnique({
       where: { id: requerimientoId },
-      include: { items: true },
+      include: { items: { include: { pieza: true, servicio: true } } },
     });
     if (!requerimiento) throw new Error("Requerimiento no encontrado");
     if (requerimiento.items.length === 0) {

@@ -12,6 +12,7 @@ export const ENTIDADES_CLASE = [
   { entidad: "OrdenTrabajo", label: "OT" },
   { entidad: "Proveedor", label: "Proveedores" },
   { entidad: "Requerimiento", label: "Requerimientos" },
+  { entidad: "Servicio", label: "Servicios" },
 ] as const;
 
 export function labelEntidad(entidad: string): string {

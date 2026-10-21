@@ -488,6 +488,7 @@ model Clase {
   ordenesTrabajo            OrdenTrabajo[]
   proveedores               Proveedor[]
   requerimientos            Requerimiento[]
+  servicios                 Servicio[]
 
   @@unique([entidad, nombre])
   @@map("clases")
@@ -508,6 +509,7 @@ model Categoria {
   ordenesTrabajo            OrdenTrabajo[]
   proveedores               Proveedor[]
   requerimientos            Requerimiento[]
+  servicios                 Servicio[]
 
   @@unique([claseId, nombre])
   @@map("categorias")
@@ -577,16 +579,24 @@ model Requerimiento {
   @@map("requerimientos")
 }
 
+// Lo pedido es siempre una Pieza o un Servicio del catálogo (nunca texto
+// libre), para que dos Requerimientos distintos que piden lo mismo se
+// puedan reconocer como el mismo ítem al mover líneas entre ellos (ver
+// moverItems en app/admin/requerimientos/actions.ts). Cuál de los dos se usa
+// depende del tipo del Requerimiento (PRODUCTO → piezaId, SERVICIO →
+// servicioId); se valida en el server action, no a nivel de base.
 model RequerimientoItem {
   id              String   @id @default(cuid())
   requerimientoId String
-  descripcion     String
+  piezaId         String?
+  servicioId      String?
   cantidad        Float
-  unidadMedida    String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   requerimiento   Requerimiento    @relation(fields: [requerimientoId], references: [id], onDelete: Cascade)
+  pieza           Pieza?           @relation(fields: [piezaId], references: [id])
+  servicio        Servicio?        @relation(fields: [servicioId], references: [id])
   cotizacionItems CotizacionItem[]
 
   @@map("requerimientos_items")
@@ -673,13 +683,36 @@ model Pieza {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  clase     Clase?                   @relation(fields: [claseId], references: [id], onDelete: SetNull)
-  categoria Categoria?               @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
-  deposito  Deposito                 @relation(fields: [depositoId], references: [id])
-  ubicacion Ubicacion?               @relation(fields: [ubicacionId], references: [id], onDelete: SetNull)
-  usos      OrdenTrabajoTareaPieza[]
+  clase              Clase?                   @relation(fields: [claseId], references: [id], onDelete: SetNull)
+  categoria          Categoria?               @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  deposito           Deposito                 @relation(fields: [depositoId], references: [id])
+  ubicacion          Ubicacion?               @relation(fields: [ubicacionId], references: [id], onDelete: SetNull)
+  usos               OrdenTrabajoTareaPieza[]
+  requerimientoItems RequerimientoItem[]
 
   @@map("piezas")
+}
+
+// Catálogo de servicios contratables a Proveedores (limpieza, internet,
+// mecánicos, etc.), usado como lo pedido en un Requerimiento de tipo
+// SERVICIO — paralelo a Pieza para los de tipo PRODUCTO, pero sin stock ni
+// Depósito porque un servicio no es almacenable.
+model Servicio {
+  id           String   @id @default(cuid())
+  nombre       String
+  descripcion  String?
+  unidadMedida String
+  // Null = todavía sin clasificar (clase/categoría se definen más adelante).
+  claseId      String?
+  categoriaId  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  clase              Clase?              @relation(fields: [claseId], references: [id], onDelete: SetNull)
+  categoria          Categoria?          @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  requerimientoItems RequerimientoItem[]
+
+  @@map("servicios")
 }
 
 // Depósitos físicos donde se guardan Activos y Piezas (puede haber uno solo

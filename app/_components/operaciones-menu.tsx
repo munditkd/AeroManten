@@ -11,6 +11,7 @@ const ITEMS = [
   { href: "/admin/mantenimiento-preventivo", label: "Mantenimiento Preventivo" },
   { href: "/admin/ordenes-trabajo", label: "Órdenes de Trabajo" },
   { href: "/admin/piezas", label: "Piezas" },
+  { href: "/admin/servicios", label: "Servicios" },
 ];
 
 export function OperacionesMenu() {

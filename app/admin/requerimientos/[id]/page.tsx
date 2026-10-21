@@ -7,6 +7,8 @@ import {
   deleteRequerimiento,
   createItem,
   deleteItem,
+  updateItem,
+  moverItems,
   enviarRequerimiento,
   createCotizacion,
   updateCotizacion,
@@ -15,9 +17,15 @@ import {
 import { ClaseCategoriaSelector } from "@/app/_components/clase-categoria-selector";
 import { ActionForm } from "@/app/_components/action-form";
 import { ConfirmDeleteButton } from "@/app/_components/confirm-delete-button";
+import { ItemsList } from "../items-list";
 import { obtenerClases, obtenerCategoriasDeEntidad } from "@/lib/clases";
 import { obtenerEstados, claseBadgeEstado } from "@/lib/estados";
-import { TIPOS_REQUERIMIENTO, TIPO_REQUERIMIENTO_LABEL } from "@/lib/requerimientos";
+import {
+  TIPOS_REQUERIMIENTO,
+  TIPO_REQUERIMIENTO_LABEL,
+  nombreItem,
+  unidadItem,
+} from "@/lib/requerimientos";
 import { obtenerPropietarioComercial, construirTransporterComercial } from "@/lib/mail-comercial";
 
 export default async function RequerimientoDetailPage({
@@ -36,11 +44,13 @@ export default async function RequerimientoDetailPage({
     proveedores,
     propietarioComercial,
     session,
+    piezas,
+    servicios,
   ] = await Promise.all([
     prisma.requerimiento.findUnique({
       where: { id },
       include: {
-        items: { orderBy: { createdAt: "asc" } },
+        items: { orderBy: { createdAt: "asc" }, include: { pieza: true, servicio: true } },
         envios: { orderBy: { enviadoAt: "desc" }, include: { proveedor: true } },
         cotizaciones: {
           orderBy: { createdAt: "asc" },
@@ -59,6 +69,8 @@ export default async function RequerimientoDetailPage({
     }),
     obtenerPropietarioComercial(),
     auth(),
+    prisma.pieza.findMany({ orderBy: { nombre: "asc" } }),
+    prisma.servicio.findMany({ orderBy: { nombre: "asc" } }),
   ]);
 
   if (!requerimiento) notFound();
@@ -69,9 +81,22 @@ export default async function RequerimientoDetailPage({
     propietarioComercial && construirTransporterComercial(propietarioComercial)
   );
 
+  const requerimientosAbiertos = await prisma.requerimiento.findMany({
+    where: {
+      id: { not: requerimiento.id },
+      tipo: requerimiento.tipo,
+      estado: { rstatus: "ABIERTA" },
+    },
+    select: { id: true, codigo: true, titulo: true },
+    orderBy: { codigo: "asc" },
+  });
+
   const updateRequerimientoWithId = updateRequerimiento.bind(null, requerimiento.id);
   const deleteRequerimientoWithId = deleteRequerimiento.bind(null, requerimiento.id);
   const createItemWithId = createItem.bind(null, requerimiento.id);
+  const deleteItemWithId = deleteItem.bind(null, requerimiento.id);
+  const updateItemWithId = updateItem.bind(null, requerimiento.id);
+  const moverItemsWithId = moverItems.bind(null, requerimiento.id);
   const enviarRequerimientoWithId = enviarRequerimiento.bind(null, requerimiento.id);
   const createCotizacionWithId = createCotizacion.bind(null, requerimiento.id);
 
@@ -79,6 +104,19 @@ export default async function RequerimientoDetailPage({
   const proveedoresSinCotizacion = proveedores.filter(
     (p) => !requerimiento.cotizaciones.some((c) => c.proveedorId === p.id)
   );
+
+  const opcionesCatalogo =
+    requerimiento.tipo === "PRODUCTO"
+      ? piezas.map((p) => ({ id: p.id, nombre: p.nombre, unidadMedida: p.unidadMedida }))
+      : servicios.map((s) => ({ id: s.id, nombre: s.nombre, unidadMedida: s.unidadMedida }));
+  const itemsResueltos = requerimiento.items.map((item) => ({
+    id: item.id,
+    cantidad: item.cantidad,
+    piezaId: item.piezaId,
+    servicioId: item.servicioId,
+    nombre: nombreItem(item),
+    unidad: unidadItem(item),
+  }));
 
   return (
     <div>
@@ -180,44 +218,62 @@ export default async function RequerimientoDetailPage({
 
           <div className="rounded-lg border border-gris-200 bg-white p-6">
             <h2 className="text-sm font-semibold text-gris-900">Ítems</h2>
-            <ul className="mt-4 divide-y divide-gris-100">
-              {requerimiento.items.map((item) => {
-                const deleteItemWithId = deleteItem.bind(null, requerimiento.id, item.id);
-                return (
-                  <li key={item.id} className="flex items-center justify-between gap-3 py-3">
-                    <div>
-                      <p className="text-sm text-gris-900">{item.descripcion}</p>
-                      <p className="text-xs text-gris-500">
-                        {item.cantidad} {item.unidadMedida ?? ""}
-                      </p>
-                    </div>
-                    <ConfirmDeleteButton
-                      action={deleteItemWithId}
-                      mensaje={`¿Quitar "${item.descripcion}" del requerimiento?`}
-                      className="shrink-0 text-xs font-medium text-red-500 hover:underline"
-                    >
-                      Quitar
-                    </ConfirmDeleteButton>
-                  </li>
-                );
-              })}
-              {requerimiento.items.length === 0 && (
-                <li className="py-3 text-sm text-gris-500">Todavía no hay ítems cargados.</li>
-              )}
-            </ul>
+            <p className="mt-1 text-xs text-gris-400">
+              Lo pedido sale del catálogo de {requerimiento.tipo === "PRODUCTO" ? "Piezas" : "Servicios"},
+              nunca texto libre, para poder agrupar pedidos iguales entre requerimientos.
+            </p>
+
+            <div className="mt-4">
+              <ItemsList
+                tipoLabel={requerimiento.tipo === "PRODUCTO" ? "pieza" : "servicio"}
+                items={itemsResueltos}
+                puedeAprobar={puedeAprobar}
+                opcionesCatalogo={opcionesCatalogo}
+                requerimientosAbiertos={requerimientosAbiertos}
+                deleteItemAction={deleteItemWithId}
+                updateItemAction={updateItemWithId}
+                moverItemsAction={moverItemsWithId}
+              />
+            </div>
 
             <ActionForm
               action={createItemWithId}
               className="mt-4 flex flex-wrap items-end gap-2 border-t border-gris-100 pt-4"
             >
               <div className="flex-1 basis-full sm:basis-auto">
-                <label className="block text-xs font-medium text-gris-700">Descripción</label>
-                <input
-                  name="descripcion"
+                <label className="block text-xs font-medium text-gris-700">
+                  {requerimiento.tipo === "PRODUCTO" ? "Pieza" : "Servicio"}
+                </label>
+                <select
+                  name={requerimiento.tipo === "PRODUCTO" ? "piezaId" : "servicioId"}
                   required
-                  placeholder="Ej: Filtro de aceite"
+                  defaultValue=""
                   className="mt-1 w-full rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
-                />
+                >
+                  <option value="" disabled>
+                    {requerimiento.tipo === "PRODUCTO" ? "Elegí una pieza" : "Elegí un servicio"}
+                  </option>
+                  {opcionesCatalogo.map((op) => (
+                    <option key={op.id} value={op.id}>
+                      {op.nombre}
+                    </option>
+                  ))}
+                </select>
+                {opcionesCatalogo.length === 0 && (
+                  <p className="mt-1 text-xs text-gris-400">
+                    Todavía no hay{" "}
+                    {requerimiento.tipo === "PRODUCTO" ? (
+                      <Link href="/admin/piezas" className="text-celeste-700 hover:underline">
+                        piezas cargadas
+                      </Link>
+                    ) : (
+                      <Link href="/admin/servicios" className="text-celeste-700 hover:underline">
+                        servicios cargados
+                      </Link>
+                    )}
+                    .
+                  </p>
+                )}
               </div>
               <div className="w-20">
                 <label className="block text-xs font-medium text-gris-700">Cant.</label>
@@ -225,15 +281,8 @@ export default async function RequerimientoDetailPage({
                   name="cantidad"
                   type="number"
                   step="0.01"
+                  min="0.01"
                   required
-                  className="mt-1 w-full rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
-                />
-              </div>
-              <div className="w-28">
-                <label className="block text-xs font-medium text-gris-700">Unidad</label>
-                <input
-                  name="unidadMedida"
-                  placeholder="Unidad"
                   className="mt-1 w-full rounded-md border border-gris-300 px-2 py-1.5 text-sm focus:border-celeste-600 focus:outline-none"
                 />
               </div>
@@ -389,7 +438,7 @@ export default async function RequerimientoDetailPage({
                     const minimo = conPrecio.length > 0 ? Math.min(...conPrecio) : null;
                     return (
                       <tr key={item.id}>
-                        <td className="px-3 py-2 text-gris-700">{item.descripcion}</td>
+                        <td className="px-3 py-2 text-gris-700">{nombreItem(item)}</td>
                         {requerimiento.cotizaciones.map((cot, idx) => {
                           const precio = precios[idx];
                           const esMinimo = precio !== null && precio === minimo;
@@ -481,7 +530,7 @@ export default async function RequerimientoDetailPage({
                         {requerimiento.items.map((item) => (
                           <div key={item.id} className="flex items-center gap-2">
                             <span className="flex-1 text-xs text-gris-600">
-                              {item.descripcion}
+                              {nombreItem(item)}
                             </span>
                             <input
                               name={`precio_${item.id}`}
@@ -608,7 +657,7 @@ export default async function RequerimientoDetailPage({
                 </label>
                 {requerimiento.items.map((item) => (
                   <div key={item.id} className="flex items-center gap-2">
-                    <span className="flex-1 text-xs text-gris-600">{item.descripcion}</span>
+                    <span className="flex-1 text-xs text-gris-600">{nombreItem(item)}</span>
                     <input
                       name={`precio_${item.id}`}
                       type="number"

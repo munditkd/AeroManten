@@ -38,7 +38,22 @@ export async function crearRequerimientoConCodigo(
   });
 }
 
-type ItemParaMail = { descripcion: string; cantidad: number; unidadMedida: string | null };
+type ItemParaMail = {
+  cantidad: number;
+  pieza: { nombre: string; unidadMedida: string } | null;
+  servicio: { nombre: string; unidadMedida: string } | null;
+};
+
+// Lo pedido siempre sale de la Pieza o el Servicio referenciado, nunca de
+// texto libre (ver RequerimientoItem en schema.prisma). Se usa tanto acá
+// como en la UI del detalle del Requerimiento.
+export function nombreItem(item: { pieza: { nombre: string } | null; servicio: { nombre: string } | null }): string {
+  return item.pieza?.nombre ?? item.servicio?.nombre ?? "—";
+}
+
+export function unidadItem(item: { pieza: { unidadMedida: string } | null; servicio: { unidadMedida: string } | null }): string {
+  return item.pieza?.unidadMedida ?? item.servicio?.unidadMedida ?? "";
+}
 
 function escapeHtml(valor: string): string {
   return valor
@@ -60,9 +75,9 @@ export function construirHtmlRequerimientoMail(requerimiento: {
     .map(
       (item) => `
         <tr>
-          <td style="padding:6px 10px;border:1px solid #ddd;">${escapeHtml(item.descripcion)}</td>
+          <td style="padding:6px 10px;border:1px solid #ddd;">${escapeHtml(nombreItem(item))}</td>
           <td style="padding:6px 10px;border:1px solid #ddd;text-align:right;">${item.cantidad}</td>
-          <td style="padding:6px 10px;border:1px solid #ddd;">${escapeHtml(item.unidadMedida ?? "")}</td>
+          <td style="padding:6px 10px;border:1px solid #ddd;">${escapeHtml(unidadItem(item))}</td>
         </tr>`
     )
     .join("");
