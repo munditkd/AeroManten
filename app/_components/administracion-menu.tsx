@@ -13,6 +13,7 @@ const ITEMS = [
   { href: "/admin/clases", label: "Clases y Categorías" },
   { href: "/admin/depositos", label: "Depósitos y Ubicaciones" },
   { href: "/admin/proveedores", label: "Proveedores" },
+  { href: "/admin/requerimientos", label: "Requerimientos" },
 ];
 
 export function AdministracionMenu() {

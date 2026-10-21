@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { verificarPermiso } from "@/lib/permisos";
+import { verificarSinReferencias } from "@/lib/eliminar-guard";
 import { ejecutarAccion, type EstadoAccion } from "@/lib/accion-segura";
 
 function str(formData: FormData, key: string): string | undefined {
@@ -80,6 +81,9 @@ export async function updateProveedor(
 export async function deleteProveedor(id: string): Promise<EstadoAccion> {
   return ejecutarAccion(async () => {
     await verificarPermiso("borrar");
+
+    const envios = await prisma.requerimientoEnvio.count({ where: { proveedorId: id } });
+    verificarSinReferencias([{ nombre: "Envíos de Requerimientos", cantidad: envios }]);
 
     await prisma.proveedor.delete({ where: { id } });
     revalidatePath("/admin/proveedores");

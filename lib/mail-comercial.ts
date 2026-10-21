@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { prisma } from "./prisma";
 import { desencriptar } from "./credenciales";
 
 type DatosSmtpComercial = {
@@ -8,6 +9,26 @@ type DatosSmtpComercial = {
   smtpPasswordEncriptada: string | null;
   smtpSeguro: boolean;
 };
+
+// Mismo criterio que obtenerEmpresaPrincipal() (ver lib/configuracion-empresa.ts):
+// en la práctica debería haber un solo Propietario con esto cargado, así que
+// alcanza con el primero que tenga Mail Comercial configurado.
+export function obtenerPropietarioComercial() {
+  return prisma.propietario.findFirst({
+    where: { mailComercial: { not: null } },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      empresa: true,
+      mailComercial: true,
+      smtpHost: true,
+      smtpPort: true,
+      smtpUser: true,
+      smtpPasswordEncriptada: true,
+      smtpSeguro: true,
+    },
+  });
+}
 
 // null = la casilla comercial todavía no tiene las credenciales SMTP
 // completas (host, usuario y contraseña) cargadas y guardadas.

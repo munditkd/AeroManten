@@ -11,6 +11,7 @@ export const ENTIDADES_CLASE = [
   { entidad: "MantenimientoPreventivo", label: "MP" },
   { entidad: "OrdenTrabajo", label: "OT" },
   { entidad: "Proveedor", label: "Proveedores" },
+  { entidad: "Requerimiento", label: "Requerimientos" },
 ] as const;
 
 export function labelEntidad(entidad: string): string {

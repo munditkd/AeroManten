@@ -372,6 +372,7 @@ model Estado {
   activos             Activo[]
   aeronaves           Aeronave[]
   ordenesTrabajoTarea OrdenTrabajoTarea[]
+  requerimientos      Requerimiento[]
 
   @@unique([tabla, propiedad, status])
   @@map("estados")
@@ -481,6 +482,7 @@ model Clase {
   mantenimientosPreventivos MantenimientoPreventivo[]
   ordenesTrabajo            OrdenTrabajo[]
   proveedores               Proveedor[]
+  requerimientos            Requerimiento[]
 
   @@unique([entidad, nombre])
   @@map("clases")
@@ -500,6 +502,7 @@ model Categoria {
   mantenimientosPreventivos MantenimientoPreventivo[]
   ordenesTrabajo            OrdenTrabajo[]
   proveedores               Proveedor[]
+  requerimientos            Requerimiento[]
 
   @@unique([claseId, nombre])
   @@map("categorias")
@@ -523,10 +526,83 @@ model Proveedor {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  clase     Clase?     @relation(fields: [claseId], references: [id])
-  categoria Categoria? @relation(fields: [categoriaId], references: [id])
+  clase     Clase?               @relation(fields: [claseId], references: [id])
+  categoria Categoria?           @relation(fields: [categoriaId], references: [id])
+  envios    RequerimientoEnvio[]
 
   @@map("proveedores")
+}
+
+enum TipoRequerimiento {
+  PRODUCTO
+  SERVICIO
+}
+
+// Pedido de cotización de Productos o Servicios, armado con ítems propios
+// (ver RequerimientoItem) y enviado por mail a Proveedores elegidos (ver
+// RequerimientoEnvio) desde la casilla comercial del Propietario (ver
+// lib/mail-comercial.ts). Clase/Categoría agrupan el pedido por rubro, igual
+// que en Proveedor, para poder elegir destinatarios de un mismo rubro.
+model Requerimiento {
+  id          String            @id @default(cuid())
+  // Contador interno para generar "codigo" (REQ-00001 en adelante).
+  secuencia   Int               @unique @default(autoincrement())
+  codigo      String            @unique
+  titulo      String
+  tipo        TipoRequerimiento
+  descripcion String?           @db.Text
+  // Null = todavía sin clasificar.
+  claseId     String?
+  categoriaId String?
+  estadoId    String
+  // Se completa solo, con el usuario logueado que lo creó.
+  creadoPor   String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  clase     Clase?     @relation(fields: [claseId], references: [id])
+  categoria Categoria? @relation(fields: [categoriaId], references: [id])
+  estado    Estado     @relation(fields: [estadoId], references: [id])
+
+  items  RequerimientoItem[]
+  envios RequerimientoEnvio[]
+
+  @@map("requerimientos")
+}
+
+model RequerimientoItem {
+  id              String   @id @default(cuid())
+  requerimientoId String
+  descripcion     String
+  cantidad        Float
+  unidadMedida    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  requerimiento Requerimiento @relation(fields: [requerimientoId], references: [id], onDelete: Cascade)
+
+  @@map("requerimientos_items")
+}
+
+// Registro de a quién se le mandó un Requerimiento y cuándo, con el
+// resultado del envío (ok/error). "mailEnviadoA" es una foto del email del
+// Proveedor al momento de enviar, por si después lo cambian. Reenviar a un
+// mismo Proveedor actualiza esta misma fila (ver @@unique) en vez de
+// duplicarla.
+model RequerimientoEnvio {
+  id              String   @id @default(cuid())
+  requerimientoId String
+  proveedorId     String
+  mailEnviadoA    String
+  enviadoAt       DateTime @default(now())
+  ok              Boolean
+  error           String?  @db.Text
+
+  requerimiento Requerimiento @relation(fields: [requerimientoId], references: [id], onDelete: Cascade)
+  proveedor     Proveedor     @relation(fields: [proveedorId], references: [id])
+
+  @@unique([requerimientoId, proveedorId])
+  @@map("requerimientos_envios")
 }
 
 // Piezas sin número de serie usadas como insumo en mantenimiento (caños,
