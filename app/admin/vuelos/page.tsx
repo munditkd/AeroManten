@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { TIPO_VUELO_LABEL, TIPOS_VUELO } from "@/lib/vuelos";
 import { cargarVuelo } from "./actions";
 
 export default async function CargaVuelosPage({
@@ -119,6 +120,27 @@ export default async function CargaVuelosPage({
               </p>
               <form action={cargarVuelo} className="mt-4 space-y-3">
                 <input type="hidden" name="aeronaveId" value={aeronave.id} />
+
+                <div>
+                  <label className="block text-xs font-medium text-gris-700">
+                    Tipo de vuelo
+                  </label>
+                  <select
+                    name="tipoVuelo"
+                    required
+                    defaultValue=""
+                    className="mt-1 w-full rounded-md border border-gris-300 px-3 py-2 text-sm focus:border-celeste-600 focus:outline-none"
+                  >
+                    <option value="" disabled>
+                      Seleccioná el tipo de vuelo
+                    </option>
+                    {TIPOS_VUELO.map((tipo) => (
+                      <option key={tipo} value={tipo}>
+                        {TIPO_VUELO_LABEL[tipo]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
                 <div>
                   <label className="block text-xs font-medium text-gris-700">

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { verificarPermiso } from "@/lib/permisos";
+import { TIPOS_VUELO } from "@/lib/vuelos";
+import { TipoVuelo } from "@prisma/client";
 
 function str(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -31,7 +33,12 @@ export async function cargarVuelo(formData: FormData) {
   const horas = num(formData, "horas") ?? 0;
   const ciclos = num(formData, "ciclos") ?? 0;
 
+  const tipoVuelo = str(formData, "tipoVuelo") as TipoVuelo | undefined;
+
   if (!aeronaveId) throw new Error("Seleccioná una aeronave");
+  if (!tipoVuelo || !TIPOS_VUELO.includes(tipoVuelo)) {
+    throw new Error("Seleccioná el tipo de vuelo");
+  }
   if (horas <= 0 && ciclos <= 0) {
     throw new Error("Ingresá horas de vuelo o ciclos realizados");
   }
@@ -77,6 +84,7 @@ export async function cargarVuelo(formData: FormData) {
     prisma.registroVuelo.create({
       data: {
         aeronaveId,
+        tipoVuelo,
         pilotoId: str(formData, "pilotoId") ?? null,
         paisOrigen: str(formData, "paisOrigen") ?? null,
         aeropuertoOrigen: str(formData, "aeropuertoOrigen") ?? null,

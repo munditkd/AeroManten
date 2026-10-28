@@ -770,9 +770,32 @@ model OrdenTrabajoTareaPieza {
 // Bitácora de vuelo. Se carga desde la pantalla "Carga de Vuelos", que
 // además sigue sumando horas/ciclos a la aeronave y sus activos montados
 // (mismo cálculo que ya existía, sin cambios).
+// Lista fija: para agregar o renombrar un tipo hay que tocar este enum y
+// TIPO_VUELO_LABEL en lib/vuelos.ts (el texto que ve el usuario).
+enum TipoVuelo {
+  TRANSPORTE_PASAJEROS
+  TRASLADO_AEREO
+  CORREO
+  TRANSPORTE_CARGA
+  PARACAIDISMO
+  REMOLQUE_PLANEADOR
+  INSTRUCCION
+  NAVEGACION
+  FOTOGRAFIA
+  CONTROL_FAUNA
+  TRANSPORTE_SANITARIO
+  EVACUACION_MEDICA
+  PUBLICIDAD
+  OFF_SHORE
+  CONTRA_INCENDIO
+}
+
 model RegistroVuelo {
   id                String    @id @default(cuid())
   aeronaveId        String
+  // Obligatorio al cargar un vuelo nuevo (ver app/admin/vuelos/actions.ts);
+  // queda opcional en la base porque los vuelos cargados antes no lo tienen.
+  tipoVuelo         TipoVuelo?
   pilotoId          String?
   paisOrigen        String?
   aeropuertoOrigen  String?

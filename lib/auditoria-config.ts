@@ -151,6 +151,7 @@ export const TABLAS_AUDITABLES: TablaAuditable[] = [
     delegate: "registroVuelo",
     campos: [
       { nombre: "aeronaveId", label: "Aeronave" },
+      { nombre: "tipoVuelo", label: "Tipo de vuelo" },
       { nombre: "pilotoId", label: "Piloto" },
       { nombre: "paisOrigen", label: "País origen" },
       { nombre: "aeropuertoOrigen", label: "Aeropuerto origen" },
