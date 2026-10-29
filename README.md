@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AeroManten
 
-## Getting Started
+Sistema de gestión de mantenimiento aeronáutico. Administra aeronaves y los
+activos montados en ellas, su mantenimiento (correctivo y preventivo), órdenes
+de trabajo, personal, inventario de piezas, requerimientos/cotizaciones a
+proveedores, bitácora de vuelos y auditoría de cambios y accesos.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Next.js 16** (App Router, React 19, Server Actions) — `next build --webpack`.
+- **Prisma 6** sobre **MySQL / MariaDB** — sin migraciones versionadas, se usa
+  `prisma db push` (ver [DEPLOY.md](DEPLOY.md)).
+- **NextAuth v5** para autenticación (login, registro, recuperación de contraseña).
+- **Tailwind CSS 4**.
+- **Brevo** (API HTTP) para el envío de emails — verificación de cuenta,
+  recuperación de contraseña y envío de requerimientos a proveedores. No se usa
+  SMTP directo (los puertos SMTP suelen estar bloqueados en los hostings).
+- **Puppeteer** + **ExcelJS** para generar reportes (PDF / JPG / Excel).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Entornos
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+El proyecto corre en **dos entornos de producción** independientes, los dos
+documentados en [DEPLOY.md](DEPLOY.md):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Hostinger / cPanel** → `aeromanten.com.ar`
+- **Droplet DigitalOcean "doliarg"** → `157.230.212.99` (PM2 + nginx)
 
-## Learn More
+El código vive en [github.com/munditkd/AeroManten](https://github.com/munditkd/AeroManten),
+rama única `main`.
 
-To learn more about Next.js, take a look at the following resources:
+## Desarrollo local
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Requisitos: **Node 22** y un **MySQL/MariaDB** local (en esta máquina se usa el
+MySQL de **XAMPP** — hay que tenerlo levantado antes de arrancar la app).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Base de datos.** Levantá MySQL (XAMPP → Start en MySQL) y creá una base
+   vacía, por ejemplo `aeromanten_local`.
 
-## Deploy on Vercel
+2. **Variables de entorno.** Copiá `.env.example` a `.env` y completá los
+   valores (como mínimo `DATABASE_URL` apuntando a tu base local):
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   cp .env.example .env
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. **Dependencias y cliente de Prisma:**
+
+   ```bash
+   npm install
+   npx prisma generate
+   npx prisma db push     # crea las tablas en tu base local
+   ```
+
+4. **Arrancar el servidor de desarrollo:**
+
+   ```bash
+   npm run dev
+   ```
+
+   Abrí [http://localhost:3000](http://localhost:3000).
+
+5. **Primer usuario admin.** Registrate en `/register`, después marcá tu usuario
+   como admin en la base:
+
+   ```sql
+   UPDATE users SET role = 'ADMIN' WHERE email = 'tu-email@ejemplo.com';
+   ```
+
+   Iniciá sesión en `/login` y entrá a `/admin`.
+
+## Comandos útiles
+
+| Comando | Qué hace |
+|---|---|
+| `npm run dev` | Servidor de desarrollo en `localhost:3000`. |
+| `npm run build` | Build de producción (`next build --webpack`). |
+| `npm run start` | Sirve el build de producción. |
+| `npm run lint` | ESLint. |
+| `npx tsc --noEmit` | Chequeo de tipos (el build lo saltea, correrlo a mano). |
+| `npx prisma studio` | Explorador visual de la base. |
+| `npx prisma db push` | Sincroniza la base con `prisma/schema.prisma`. |
+
+## Documentación relacionada
+
+- [DEPLOY.md](DEPLOY.md) — desplegar en los dos entornos de producción.
+- [PRISMA_ENGINES_SETUP.md](PRISMA_ENGINES_SETUP.md) — workaround de los motores
+  de Prisma en Hostinger (motor pre-descargado + `db push` manual).

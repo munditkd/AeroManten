@@ -1,4 +1,17 @@
-# Desplegar en Hostinginlimitado
+# Desplegar AeroManten
+
+El proyecto corre en **dos entornos de producción** independientes:
+
+- **Hostinger / cPanel** (`aeromanten.com.ar`) — ver [Parte A](#parte-a-hostinger--cpanel).
+- **Droplet DigitalOcean "doliarg"** (`157.230.212.99`) — ver
+  [Parte B](#parte-b-droplet-digitalocean-doliarg).
+
+Son instalaciones distintas, con bases de datos distintas. Un cambio de código se
+sube a GitHub (rama `main`) y después se despliega en cada entorno por separado.
+
+---
+
+## Parte A: Hostinger / cPanel
 
 Guía basada en el despliegue real ya hecho para `aeromanten.com.ar` (cuenta cPanel
 `aeromant`, servidor `server0808`). Si volvés a desplegar desde cero, seguí estos
@@ -210,3 +223,81 @@ terminal, o la Terminal general de cPanel):
    ```
 
 4. Reiniciar: **Setup Node.js App → aeromanten → Restart**.
+
+---
+
+## Parte B: Droplet DigitalOcean "doliarg"
+
+Segundo entorno de producción, en un droplet propio (no cPanel). A diferencia de
+Hostinger, acá **sí funciona `prisma db push` en el servidor**, así que el deploy
+es más directo.
+
+### Datos del entorno
+
+- **Droplet**: `doliarg`, IP `157.230.212.99`, ID `601134947`. Ubuntu 24.04,
+  1 vCPU / 2 GB RAM, Node 22.
+- **Carpeta de la app**: `/home/deploy/aeromanten`, bajo el usuario **`deploy`**
+  (el repo le pertenece a `deploy`, no a `root` — importante: ver más abajo).
+- **Proceso**: administrado con **PM2** (proceso `aeromanten`, modo `fork`). Next
+  escucha en el puerto `3000`; **nginx** en el `80` hace de proxy inverso.
+- **Base de datos**: MySQL local `aeromanten_test` en `localhost:3306` (se llama
+  "test" por historia, pero es la base de producción de este droplet). La conexión
+  está en `/home/deploy/aeromanten/.env`.
+
+### Acceso al servidor
+
+El acceso normal es por **SSH** con la clave local `id_ed25519` (es la misma que
+en DigitalOcean figura como "clavemundi"). Esa clave tiene una **passphrase**.
+
+Si no se puede entrar por SSH (passphrase perdida, consola web que falla con
+"All configured authentication methods failed"), el camino que funciona es la
+**Recovery Console** de DigitalOcean:
+
+1. Droplet → **Settings** → bajar hasta **"Recovery console"** → **Launch Console**.
+2. En `login:` escribir `root`. Si pide cambiar/resetear la contraseña, usar
+   **"Reset root password"** desde el panel (manda una temporal al email de la
+   cuenta); en el primer login obliga a cambiarla.
+3. Ya como `root`, pasar al usuario de la app:
+   ```bash
+   su - deploy
+   ```
+
+> ⚠️ **Nunca** usar "Restore base image", "Rebuild" ni "Destroy" del droplet:
+> borran la app y la base de datos de producción.
+
+### Procedimiento de actualización
+
+Siempre como usuario **`deploy`** (si entraste como root, `su - deploy` primero —
+si hacés `git pull`/`build` como root, los archivos quedan con dueño root y la app,
+que corre como `deploy`, falla):
+
+```bash
+cd ~/aeromanten
+git pull origin main
+npm install --include=dev
+npx prisma generate
+npx prisma db push          # SOLO si cambió prisma/schema.prisma (crea columnas/tablas nuevas)
+rm -rf .next && npm run build
+pm2 restart aeromanten
+```
+
+Verificar que arrancó bien:
+
+```bash
+pm2 logs aeromanten --lines 20 --nostream
+```
+
+Tiene que mostrar `✔ Ready in ...` con la versión nueva y sin errores de arranque.
+
+### Notas
+
+- **`db push` acá sí funciona** (a diferencia de Hostinger). Si el cambio de schema
+  es seguro (p. ej. una columna opcional nueva), no pide `--accept-data-loss`. Si lo
+  pide, **frená y revisá** el resumen antes de confirmar.
+- Justo después de un deploy, en el log de errores aparecen líneas tipo
+  **"Failed to find Server Action" / "Server Reference ID did not match"**: son
+  transitorias y esperables (navegadores que tenían la página vieja abierta). Se
+  resuelven recargando con `Ctrl+Shift+R`. No es un bug del código.
+- **No** correr `npm audit fix --force` ni actualizar Prisma a la 8.x: rompen la app.
+- El build en un droplet de 2 GB tarda unos minutos; es normal. Si el proceso muere
+  con "Killed" (falta de memoria), reintentar o liberar memoria antes de buildear.
